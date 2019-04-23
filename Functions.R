@@ -153,6 +153,33 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
   
 ####### usage #########  
 
+# load in data
+ami <- read.csv('amidata.csv')
+
+# turn specific columns to factors
+factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'DIED')
+ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
+
+# make na dataframe
+ami.od <- ami
+ami.od[ami.od$LOS == 0, ]$LOS <- 1
+ami.od.na <- na.convert.mean(ami)
+
+# make into categories
+ami.od.na$LOS.ordinal <- cut(ami.od.na$LOS ,breaks=c(0,10,20,25,100),
+                             labels=c("low","low-med","med","high"),ordered=T)
+
+model_str1 <- 'polr('
+model_str2 <- ', Hess = T, data = ami.od.na)'
+predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'DIED', 'scale(CHARGES)' , 'AGE', 'CHARGES.na' )
+dependent.name <- "LOS.ordinal"
+
+# find the best model
+best <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami.od.na)
+
+
+############
+
 
 resid_plot <- function(model){
   # diagnostics
