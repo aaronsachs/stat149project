@@ -71,8 +71,8 @@ next_best <- function(model_str1, model_str2,
     anova.results <- anova(current.model, next.model, test = test)
     print(anova.results)
     
-    p.value[i] <-  anova.results[length(results)][2, ]
-    tie.breaker[i] <- anova.results[length(results) -1][2, ]
+    p.value[i] <-  anova.results[length(anova.results)][2, ]
+    tie.breaker[i] <- anova.results[length(anova.results) - 1][2, ]
   }
   
   
@@ -119,7 +119,7 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
   while (p.value < .05){
     if (null == 0){
       message('Comparing the null model against one independent variable')
-      null.results <- next_best(model_str1, model_str2, formula.null, predictors, data)
+      null.results <- next_best(model_str1, model_str2, formula.null, predictors, data, test)
       current.model <- null.results$formula
       current.predictors <- null.results$predictors
       p.value <- null.results$p.value
@@ -150,6 +150,7 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
   }
   return(current.model)
 }
+
   
 ####### usage #########  
 
