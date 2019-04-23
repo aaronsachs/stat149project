@@ -69,13 +69,13 @@ next_best <- function(model_str1, model_str2,
     
     next.model <- eval(parse(text = next.model.str))
     anova.results <- anova(current.model, next.model, test = test)
+    print(anova.results)
     
     p.value[i] <-  anova.results[length(results)][2, ]
     tie.breaker[i] <- anova.results[length(results) -1][2, ]
-    
   }
   
-  print(p.value)
+  
   # if only na left
   if (length(p.value[!is.na(p.value)]) == 0){
     print('null is left')
@@ -97,51 +97,63 @@ next_best <- function(model_str1, model_str2,
     # index 
     formula <- formulas[index]
     predictors <- predictors[predictors != predictors[index]] 
-    returning = list("formula" = formula, "p.value" = min(p.value, na.rm =TRUE), "predictors" = predictors )
+    p.value.report <- p.value[index]
     
+    returning = list("formula" = formula, "p.value" = p.value.report , "predictors" = predictors)
     return(returning)
   }
 }
-  
-# best_model_me <- function(dependent.name, predictors, data, test = "Chisq"){
-#   tilde = '~'
-#   formula.start <- paste(dependent.name, tilde,  sep = " ")
-#   formula.null <- paste(dependent.name, tilde, "1",  sep = " ")
-#   print(formula.null)
-#   
-#   null <- 0
-#   p.value <- .01
-#   null.model <- lm(eval(formula.null), data = data)
-#   
-#   while (p.value < .05){
-#     if (null == 0){
-#       null.results <- next_best(formula.null, predictors, data)
-#       current.model <- null.results$formula
-#       current.predictors <- null.results$predictors
-#       p.value <- null.results$p.value
-#       null <- 1
-#     }else{
-#       current.results <- next_best(current.model, current.predictors, data)
-#       
-#       if (length(current.results) < 3){
-#         break()
-#       }else{
-#         current.model <- current.results$formula
-#         current.predictors <- current.results$predictors
-#         p.value <- null.results$p.value
-#         print(current.model)
-#       }
-#     }
-#   }
-#   return(current.results)
-# }
 
-  
-#dependent.name = 'LOS.ordinal'
-#predictors <- c('DIAGNOSIS', 'SEX', 'DRG', 'DIED', 'scale(CHARGES)', 'AGE')
 
-#best_model_me(dependent.name, predictors, ami.od)
+
+
+best_model <- function(model_str1, model_str2, dependent.name, predictors, data, test = "Chisq"){
+  tilde = '~'
+  formula.start <- paste(dependent.name, tilde,  sep = " ")
+  formula.null <- paste(dependent.name, tilde, "1",  sep = " ")
+  message(paste('The null formula is ', formula.null))
   
+  null <- 0
+  p.value <- .01
+  
+  while (p.value < .05){
+    if (null == 0){
+      message('Comparing the null model against one independent variable')
+      null.results <- next_best(model_str1, model_str2, formula.null, predictors, data)
+      current.model <- null.results$formula
+      current.predictors <- null.results$predictors
+      p.value <- null.results$p.value
+      null <- 1
+    }else{
+      message(paste('The current model is', current.model))
+      
+      current.results <- next_best(model_str1, model_str2, current.model, current.predictors, data)
+      current.model <- current.results$formula
+      current.predictors <- current.results$predictors
+      p.value <- current.results$p.value
+      
+      
+      if (length(current.predictors) == 0){
+        print(p.value)
+        if(p.value < .05){
+          
+          return(current.model)
+        }else{
+          return(past.model)
+          
+        }
+        
+      }
+      past.model <- current.model
+      next
+    }
+  }
+  return(current.model)
+}
+  
+####### usage #########  
+
+
 resid_plot <- function(model){
   # diagnostics
   fitted <- fitted(model)
