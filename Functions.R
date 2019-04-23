@@ -78,8 +78,8 @@ next_best <- function(model_str1, model_str2,
   
   # if only na left
   if (length(p.value[!is.na(p.value)]) == 0){
-    print('null is left')
-    return(current.formula)
+    print('nothing is left')
+    return(next.model)
   }else{
     index <- which(p.value == min(p.value, na.rm = TRUE))
     
@@ -128,22 +128,27 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
       message(paste('The current model is', current.model))
       
       current.results <- next_best(model_str1, model_str2, current.model, current.predictors, data)
+      
       current.model <- current.results$formula
       current.predictors <- current.results$predictors
       p.value <- current.results$p.value
       
-      
       if (length(current.predictors) == 0){
-        print(p.value)
-        if(p.value < .05){
-          
-          return(current.model)
-        }else{
-          return(past.model)
-          
-        }
         
+        if (length(p.value) < 1){
+          return(current.model)
+        } else{
+          print(p.value)
+          if(p.value < .05){
+            
+            return(current.model)
+          }else{
+            return(past.model)
+          }
+        }
       }
+      
+      
       past.model <- current.model
       next
     }
