@@ -49,101 +49,98 @@ na.convert.mean = function(frame) {
   frame
 }
 
-next_best <- function(current.formula, current.model, predictors, data, test = 'Chisq', model = "ordinal"){
+next_best <- function(model_str1, model_str2, 
+                      current.formula, predictors,
+                      data, test = 'Chisq', tie_max_better = TRUE){
+  # init
   anova <- c()
   p.value <- c()
   formulas <- c()
-  sum.sq <- c()
+  tie.breaker <- c()
   
-  #current.model <-polr(eval(current.formula), Hess = T, data = data)
+  # fit H_0 model
+  current.model.str <- paste(model_str1, current.formula, model_str2, sep ="")
+  current.model <- eval(parse(text = current.model.str))
   
+  # fit all the possible H_A model
   for (i in 1:length(predictors)){
     formulas[i] <- paste(current.formula, predictors[i], sep = ' + ')
+    next.model.str <- paste(model_str1, formulas[i], model_str2, sep ="")
     
-    if (model == "ordinal"){
-      print("Don't forget to collapse")
-      next.model <- polr(eval(formulas[i]), Hess = T, data = data)
-      anova.results <- anova(current.model, next.model, test = test)
-      #print(anova.results)
-      p.value[i] <-  anova.results$"Pr(Chi)"[2]   
-      sum.sq[i] <- anova.results$"LR stat."[2]
-    }
-    if (model == "poisson"){
-      next.model <- glm(eval(formulas[i]), family=poisson, data = data)
-      anova.results <- anova(current.model, next.model, test = test)
-      
-      p.value[i] <-  anova.results$"Deviance"[2]   
-      sum.sq[i] <- anova.results$"Pr(>Chi)"[2]
-      if (model == "gamma"){
-        next.model <- glm(eval(formulas[i]), family=Gamma(log), data = data)
-        anova.results <- anova(current.model, next.model, test = test)
-        
-        p.value[i] <-  anova.results$"Pr(>F)"[2]   
-        sum.sq[i] <- anova.results$"F"[2]
-      }
-    }
-    # if only na left
-    if (length(p.value[!is.na(p.value)]) == 0){
-      print('null is left')
-      return(current.formula)
-    }else{
-      index <- which(p.value == min(p.value, na.rm = TRUE))
-      
-      # if tie
-      if (length(index) > 1){
-        print('Multiple models comparisons yield the same p value')
-        
-        index <- which(sum.sq == max(sum.sq, na.rm = TRUE))
-      }
-      
-      # index 
-      formula <- formulas[index]
-      predictors <- predictors[predictors != predictors[index]] 
-      returning = list("formula" = formula, "p.value" = min(p.value, na.rm =TRUE), "predictors" = predictors )
-      
-      return(returning)
-    }
+    next.model <- eval(parse(text = next.model.str))
+    anova.results <- anova(current.model, next.model, test = test)
+    
+    p.value[i] <-  anova.results[length(results)][2, ]
+    tie.breaker[i] <- anova.results[length(results) -1][2, ]
+    
   }
   
-  
-  best_model_me <- function(dependent.name, predictors, data, test = "Chisq"){
-    tilde = '~'
-    formula.start <- paste(dependent.name, tilde,  sep = " ")
-    formula.null <- paste(dependent.name, tilde, "1",  sep = " ")
-    print(formula.null)
+  print(p.value)
+  # if only na left
+  if (length(p.value[!is.na(p.value)]) == 0){
+    print('null is left')
+    return(current.formula)
+  }else{
+    index <- which(p.value == min(p.value, na.rm = TRUE))
     
-    null <- 0
-    p.value <- .01
-    null.model <- lm(eval(formula.null), data = data)
-    
-    while (p.value < .05){
-      if (null == 0){
-        null.results <- next_best(formula.null, predictors, data)
-        current.model <- null.results$formula
-        current.predictors <- null.results$predictors
-        p.value <- null.results$p.value
-        null <- 1
-      }else{
-        current.results <- next_best(current.model, current.predictors, data)
-        
-        if (length(current.results) < 3){
-          break()
-        }else{
-          current.model <- current.results$formula
-          current.predictors <- current.results$predictors
-          p.value <- null.results$p.value
-          print(current.model)
-        }
+    # if tie
+    if (length(index) > 1){
+      print('Multiple models comparisons yield the same p value')
+      # if better for tie breaker to be max
+      if (tie_max_better == 1){
+        index <- which(tie.breaker == max(tie.breaker, na.rm = TRUE))
+      } else{ ### else take the min
+        index <- which(tie.breaker == min(tie.breaker, na.rm = TRUE))
       }
     }
-    return(current.results)
+    
+    # index 
+    formula <- formulas[index]
+    predictors <- predictors[predictors != predictors[index]] 
+    returning = list("formula" = formula, "p.value" = min(p.value, na.rm =TRUE), "predictors" = predictors )
+    
+    return(returning)
   }
+}
   
-  
-dependent.name = 'LOS.ordinal'
-predictors <- c('DIAGNOSIS', 'SEX', 'DRG', 'DIED', 'scale(CHARGES)', 'AGE')
+# best_model_me <- function(dependent.name, predictors, data, test = "Chisq"){
+#   tilde = '~'
+#   formula.start <- paste(dependent.name, tilde,  sep = " ")
+#   formula.null <- paste(dependent.name, tilde, "1",  sep = " ")
+#   print(formula.null)
+#   
+#   null <- 0
+#   p.value <- .01
+#   null.model <- lm(eval(formula.null), data = data)
+#   
+#   while (p.value < .05){
+#     if (null == 0){
+#       null.results <- next_best(formula.null, predictors, data)
+#       current.model <- null.results$formula
+#       current.predictors <- null.results$predictors
+#       p.value <- null.results$p.value
+#       null <- 1
+#     }else{
+#       current.results <- next_best(current.model, current.predictors, data)
+#       
+#       if (length(current.results) < 3){
+#         break()
+#       }else{
+#         current.model <- current.results$formula
+#         current.predictors <- current.results$predictors
+#         p.value <- null.results$p.value
+#         print(current.model)
+#       }
+#     }
+#   }
+#   return(current.results)
+# }
 
-best_model_me(dependent.name, predictors, ami.od)
+  
+#dependent.name = 'LOS.ordinal'
+#predictors <- c('DIAGNOSIS', 'SEX', 'DRG', 'DIED', 'scale(CHARGES)', 'AGE')
+
+#best_model_me(dependent.name, predictors, ami.od)
   
 resid_plot <- function(model){
   # diagnostics
