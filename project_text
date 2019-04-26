@@ -1,0 +1,158 @@
+if (!require(ggplot2)) {install.packages("ggplot2"); require(ggplot2)}
+if (!require(MASS)) {install.packages("MASS"); require(MASS)}
+if (!require(pscl)) {install.packages("pscl"); require(pscl)}
+
+# load in data
+# Dataset:
+#    Patients discharged from all NY state hospitals in 1993
+#    who were admitted due to heart attack, and did not get
+#    surgery
+# Patient: patient ID from 1, ..., 12844
+# DIAGNOSIS: 5 digit code (ICD-9 code) representing part of 
+#            heart that was affected
+# SEX: F or M
+# DRG: Diagnosis related group 
+#    121: had heart attack, cardio complications, survived
+#    122: had heart attack, no cardio complications, survived
+#    123: had heart attack, died
+# DIED: 1 if died in hospital, 0 o/w
+# CHARGES: total hospital charges
+# LOS: length of stay in days since admittance
+# AGE: age of patient in years
+
+ami <- read.csv('amidata.csv')
+str(ami) # str is summary function for any R object
+
+# turn specific columns to factors
+factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'DIED')
+ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
+
+
+#######################################################################################
+##############################    VISUALIZATIONS    ###################################
+##############################                      ###################################
+#######################################################################################
+
+##### SINGLE VARIABLE #######
+#############################
+
+# los
+ggplot(ami, aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "Hosital Length of Stay", x = "Hospital Length of Stay", y = " ") 
+
+# charges (note missing values are dropped)
+ggplot(ami, aes(x = CHARGES)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "Total Hospital Charges ($)", x = "Total Hospital Charges ($)", y = " ")
+
+# age
+ggplot(ami, aes(x = AGE)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "Age", x = "Age", y = " ") 
+
+# diagnosis
+ggplot(ami, aes(x = DIAGNOSIS)) + geom_bar() + theme_gray() + 
+  labs(title = "Diagnosis", x = "Diagnosis", y = " ") 
+
+# sex
+ggplot(ami, aes(x = SEX)) + geom_bar() + theme_gray() + 
+  labs(title = "Sex", x = "Sex", y = " ") 
+
+# drg
+ggplot(ami, aes(x = DRG)) + geom_bar() + theme_gray() + 
+  labs(title = "Diagnosis Related Group (DRG)", x = "Diagnosis Related Group (DRG)", y = " ") 
+
+# died
+ggplot(ami, aes(x = DIED)) + geom_bar() + theme_gray() + 
+  labs(title = "Died", x = "Died", y = " ") 
+
+# FEATURE VS PREDICTOR VIS ##
+#############################
+
+# charges (note missing values are dropped)
+ggplot(ami, aes(x = CHARGES, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
+  labs(title = "Total Hospital Charges and  Length of Stay", x = "Total Hospital Charges ($)", y = "Hospital Length of Stay")
+
+# age
+ggplot(ami, aes(x = AGE, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
+  labs(title = "Age and  Length of Stay", x = "Age", y = "Hospital Length of Stay")
+
+# diagnoses
+ggplot(ami, aes(x = DIAGNOSIS, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "Length of Stay by Diagnosis", x = "Diagnoses", y = "Hospital Length of Stay")
+
+# sex
+ggplot(ami, aes(x = SEX, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "Length of Stay by Sex", x = "Sex", y = "Hospital Length of Stay")
+
+# drg
+ggplot(ami, aes(x = DRG, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "Length of Stay by Diagnosis Related Group (DRG)", x = "Diagnosis Related Group (DRG)", y = "Hospital Length of Stay")
+
+# died
+ggplot(ami, aes(x = DIED, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "Length of Stay by Death", x = "Death", y = "Hospital Length of Stay")
+
+
+########################################################################
+#                            MODEL SELECTION
+########################################################################
+
+# VIF tests, other multicollinearity tests
+# Deal with missing values for each model type
+# Test interaction terms for each
+
+# Linear model is bad
+# HOW TO USE ALL PREDICTOR VARS BESIDES ID COL?
+lr = lm(LOS ~ . -Patient, data = ami)
+summary(lr)
+plot(lr)
+
+# Log doesn't work, neither does sqrt (based on residual and QQ plots)
+loglr = lm(log(LOS + 1) ~ . -Patient, data = ami)
+sqrtlr = lm(sqrt(LOS) ~ . -Patient, data = ami)
+plot(loglr)
+plot(sqrtlr)
+
+# Model mean length of stay as Poisson first
+# - Why might this be a reasonable choice
+# - Talk about drawbacks of this once it doesn't work
+
+# There are 39 different lengths of stay across the dataset
+# Might be reasonable to model each individidual's response as 1 hot vector
+# Need to convert each LOS number into a one-hot vector for the cbind() in model fit
+
+# Ordinal model for different LOS buckets, or for all 39 LOS's
+
+
+# AARON WILL DO THESE TWO
+# Geometric regression
+# Each day you have same prob of being discharged, once you are discharged, your
+# LOS won't increase again (unlike Poisson, which allows for more successes after
+# a failure occurs)
+
+# Negative binomial regression (geometric is special case of this where
+# dispersion parameter is 1).  Do hurdle and ZIP within this
+
+# The num in "...Negative Binomial(num) family..." is alpha1
+nb = glm.nb(
+  LOS ~ DIAGNOSIS + AGE, 
+  data = ami
+)
+
+# zeroinfl.control(maxit = 10000)
+# Preds to right of "|" are for predicting logit(pi)
+# Same for hurdle
+zinb = zeroinfl(
+  LOS ~ DIAGNOSIS + AGE | AGE, 
+  dist = "negbin", 
+  data = ami
+)
+
+nbhurdle = hurdle(
+  LOS ~ DIAGNOSIS + AGE | AGE, 
+  dist = "negbin", 
+  data = ami
+)
+
+
+
+
