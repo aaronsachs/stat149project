@@ -203,7 +203,7 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
 ############
 
 
-resid_plot <- function(model){
+resid_plot <- function(model, model_name){
   # diagnostics
   fitted <- fitted(model)
   devresid <- residuals(model, type="deviance")
@@ -213,11 +213,11 @@ resid_plot <- function(model){
        xlab="Fitted values",
        ylab="Deviance residuals",
        pch=19, col="red", cex=1.5,
-       main="Fitted vs deviance residual plot")
+       main=paste("Fitted vs deviance residual plot", model_name))
   abline(h=0,lty=2,col="green")
 }
 
-cooks_plot <- function(model){
+cooks_plot <- function(model, model_name){
   
   cooks <- cooks.distance(model)
   
@@ -225,7 +225,7 @@ cooks_plot <- function(model){
   plot(cooks, type="h", lwd=2,
        xlab="Observation index",
        ylab="Cook's distances",
-       main="Cook's distances for Divorce Interaction Model")
+       main=paste("Cook's distances", model_name))
   abline(h=1,lty=2,col="red")
   
 }
