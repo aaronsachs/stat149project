@@ -60,7 +60,7 @@ load.data <- function(path){
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'DIED')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
-  return(ami)
+  return(na.convert.mean(ami))
   
 }
 
