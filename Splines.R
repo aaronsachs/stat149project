@@ -65,6 +65,12 @@ rsquare(ami.test$LOS, as.vector(predict(tree.final, ami.test)))
 #----- TREES FOR INTERACTIONS------------------------#
 #----------------------------------------------------#
 
-tree.ami <- rpart(LOS ~  DIAGNOSIS + SEX + DRG + LOGCHARGES.na,
+# looks like logcharges and age are most predictive
+tree.ami.all <- rpart(LOS ~ LOGCHARGES + AGE + DIAGNOSIS + SEX + DRG + LOGCHARGES.na,
                     method = "anova", parm = list(split = "information"), data = ami)
-prp(tree.ami, extra = 1, main = "Tree representation of fitted model")
+prp(tree.ami.all, extra = 1, main = "Tree representation of fitted model")
+
+# other features not that significant
+tree.ami.cat <- rpart(LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES.na,
+                      method = "anova", parm = list(split = "information"), data = ami)
+prp(tree.ami.cat, extra = 1, main = "Tree representation of fitted model")
