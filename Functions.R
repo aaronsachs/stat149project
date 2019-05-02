@@ -81,6 +81,10 @@ prediction.load.data <- function(path){
   # load in clean version
   ami <- load.data(path)
   
+  ami$DRG <- NULL
+  ami$LOGCHARGES <- NULL
+  ami$LOGCHARGES.na <- NULL
+  
   # subset train and test
   test.ind <- sample(seq_len(nrow(ami)), size = 3000)
   ami.test <- ami[test.ind, ]
