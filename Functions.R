@@ -3,6 +3,7 @@ if (!require(aod)) {install.packages("aod"); require(aod)}
 
 ############# FUNCTIONS #################
 ############# ############# ############# 
+
 na.convert.mean = function(frame) {
   vars <- names(frame)
   if (!is.null(resp <- attr(attr(frame, "terms"), "response"))) {
@@ -56,11 +57,26 @@ load.data <- function(path){
   print(paste(path, 'amidata.csv', sep = ''))
   ami <- read.csv(paste(path, 'amidata.csv', sep =''))
   
+  # drop this value
+  ami <- ami[ami$LOS != 0, ]
+  
+  
+  ami$LOGCHARGES <- log(ami$CHARGES)
+  
+  # take hospital interp
+  # na.convert.mean
+  
+  # drop died, and charges
+  ami$CHARGES <- NULL
+  ami$DIED <- NULL
+
   # turn specific columns to factors
-  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'DIED')
+  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
-  return(ami)
+  
+  ami_final <- na.convert.mean(ami)
+  return(ami_final)
   
 }
 
@@ -163,8 +179,6 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
           }
         }
       }
-      
-      
       past.model <- current.model
       next
     }
