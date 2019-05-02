@@ -2,16 +2,26 @@ if (!require(aod)) {install.packages("aod"); require(aod)}
 if (!require(sjPlot)) {install.packages("sjPlot"); require(sjPlot)}
 if (!require(sjmisc)) {install.packages("sjmisc"); require(sjmisc)}
 if (!require(ggplot2)) {install.packages("ggplot2"); require(ggplot2)}
+if (!require(gridExtra)) {install.packages("gridExtra"); require(gridExtra)}
+
+source('/Users/jeanettejin/stat149project/Functions.R')
+
 
 # load in data
-ami <- read.csv('amidata.csv')
-str(ami)
+path <- '/Users/jeanettejin/stat149project/'
+ami <- load.data(path)
 
-# turn specific columns to factors
-factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'DIED')
-ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
 
+
+ami.drop <- ami[complete.cases(ami), ]
+ami.convert <- na.convert.mean(ami)
 summary(ami)
+ami.convert$CHARGES.na <- as.factor(ami.convert$CHARGES.na)
+
+
+hist(amin[complete.cases(amin), ]$LOS)
+hist(ami[!complete.cases(ami), ]$LOS)
+
 
 #######################################################################################
 ##############################    VISUALIZATIONS    ###################################
@@ -58,25 +68,40 @@ ggplot(ami, aes(x = DIED)) + geom_bar() + theme_gray() +
 # FEATURE VS PREDICTOR VIS ##
 #############################
 
+# los
+# very right skewed
+los <- ggplot(ami, aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "LOS", x = "LOS", y = " ") 
+
 # charges (note missing values are dropped)
-ggplot(ami, aes(x = CHARGES, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
-  labs(title = "Total Hospital Charges and  Length of Stay", x = "Total Hospital Charges ($)", y = "Hospital Length of Stay")
+charges.los <- ggplot(ami, aes(x = log(CHARGES), y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
+  labs(title = "LOS by Charges", x = "Charges ($)", y = "LOS")
+charges.los
 
 # age
-ggplot(ami, aes(x = AGE, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
-  labs(title = "Age and  Length of Stay", x = "Age", y = "Hospital Length of Stay")
+age.los <- ggplot(ami, aes(x = AGE, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
+  labs(title = "LOS by Age", x = "Age", y = "LOS")
+age
 
 # diagnoses
-ggplot(ami, aes(x = DIAGNOSIS, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
-  labs(title = "Length of Stay by Diagnosis", x = "Diagnoses", y = "Hospital Length of Stay")
+diag.los <- ggplot(ami, aes(x = DIAGNOSIS, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "LOS by Diagnosis", x = "Diagnoses", y = "LOS")
+diag.los
 
 # sex
-ggplot(ami, aes(x = SEX, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
-  labs(title = "Length of Stay by Sex", x = "Sex", y = "Hospital Length of Stay")
+sex.los <- ggplot(ami, aes(x = SEX, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "LOS by Sex", x = "Sex", y = "LOS")
+
+sex.los
 
 # drg
-ggplot(ami, aes(x = DRG, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
-  labs(title = "Length of Stay by Diagnosis Related Group (DRG)", x = "Diagnosis Related Group (DRG)", y = "Hospital Length of Stay")
+drg.los <- ggplot(ami, aes(x = DRG, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
+  labs(title = "LOS by Drg", x = "DRG", y = "LOS")
+
+drg.los
+
+
+
 
 # died
 ggplot(ami, aes(x = DIED, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
@@ -113,3 +138,56 @@ plot_model(inter.a.drg, type = "int", terms = c('AGE', 'DRG'))
 # NOTE
 inter.a.died <- lm(LOS ~ AGE * DIED, data = ami)
 plot_model(inter.a.died, type = "int", terms = c('AGE', 'DIED'))
+
+
+
+###########
+###########
+##########
+
+amin <-read.csv('/Users/jeanettejin/stat149project/amidata.csv')
+
+##### VIZ 1
+
+
+missing.data <- amin[!complete.cases(amin),]
+notmissing.data <- amin[complete.cases(amin), ]
+            
+
+      
+
+table(missing.data$) /699
+table(notmissing.data$DRG) / 12145
+                     
+                     
+not.missing <- ggplot(amin[complete.cases(amin), ], aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "LOS Not Including Missing Value Rows", x = "LOS", y = " ") 
+missing <- ggplot(amin[!complete.cases(amin), ], aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "LOS of Missing Value Rows", x = "LOS", y = " ") 
+
+grid.arrange(not.missing, missing, ncol=2)
+
+not.missing <- ggplot(amin[complete.cases(amin), ], aes(x = AGE)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "LOS Not Including Missing Value Rows", x = "LOS", y = " ") 
+missing <- ggplot(amin[!complete.cases(amin), ], aes(x = AGE)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "LOS of Missing Value Rows", x = "LOS", y = " ") 
+
+
+grid.arrange(not.missing, missing, ncol=2)
+
+
+##### VIZ 2)
+
+
+dev.off()
+charges <- ggplot(amin, aes(x = CHARGES)) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "Charges", x = "Charges", y = " ") 
+
+log.charges <- ggplot(amin, aes(x = log(CHARGES))) + geom_histogram(alpha = 0.8) + theme_gray() + 
+  labs(title = "LOG(Charges)", x = "LOG(Charges)", y = " ") 
+
+grid.arrange(charges, log.charges, ncol=2)
+
+
+##### VIS 1)
+grid.arrange(los, charges.los, age.los, diag.los, sex.los, drg.los, ncol=3)

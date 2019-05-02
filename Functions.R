@@ -3,6 +3,8 @@ if (!require(aod)) {install.packages("aod"); require(aod)}
 
 ############# FUNCTIONS #################
 ############# ############# ############# 
+
+# missing value 
 na.convert.mean = function(frame) {
   vars <- names(frame)
   if (!is.null(resp <- attr(attr(frame, "terms"), "response"))) {
@@ -51,20 +53,52 @@ na.convert.mean = function(frame) {
   frame
 }
 
-
+# data loading
 load.data <- function(path){
   print(paste(path, 'amidata.csv', sep = ''))
   ami <- read.csv(paste(path, 'amidata.csv', sep =''))
   
+  # drop this value
+  ami <- ami[ami$LOS != 0, ]
+  
+  ami$LOGCHARGES <- log(ami$CHARGES)
+  
+  # drop died, and charges
+  ami$CHARGES <- NULL
+  ami$DIED <- NULL
+
+  ami <- na.convert.mean(ami)
+  
   # turn specific columns to factors
-  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'DIED')
+  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
   return(na.convert.mean(ami))
   
 }
 
+# data loading
+prediction.load.data <- function(path){
+  set.seed(101) 
+  # load in clean version
+  ami <- load.data(path)
+  
+  # ami$DRG <- NULL
+  # ami$LOGCHARGES <- NULL
+  # ami$LOGCHARGES.na <- NULL
+  
+  # subset train and test
+  test.ind <- sample(seq_len(nrow(ami)), size = 3000)
+  ami.test <- ami[test.ind, ]
+  ami.train <- ami[-test.ind, ]
+  
+  # return train and test sets
+  returning = list("train" = ami.train, 'test' = ami.test)
+  return(returning)
+  
+}
 
+# select next best predictor
 next_best <- function(model_str1, model_str2, 
                       current.formula, predictors,
                       data, test = 'Chisq', tie_max_better = TRUE){
@@ -122,7 +156,7 @@ next_best <- function(model_str1, model_str2,
 
 
 
-
+# analysis of deviance automated
 best_model <- function(model_str1, model_str2, dependent.name, predictors, data, test = "Chisq"){
   tilde = '~'
   formula.start <- paste(dependent.name, tilde,  sep = " ")
@@ -163,8 +197,6 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
           }
         }
       }
-      
-      
       past.model <- current.model
       next
     }
@@ -202,7 +234,7 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
 
 ############
 
-
+# residual plot function
 resid_plot <- function(model, model_name){
   # diagnostics
   fitted <- fitted(model)
@@ -217,6 +249,7 @@ resid_plot <- function(model, model_name){
   abline(h=0,lty=2,col="green")
 }
 
+# cooks plot function
 cooks_plot <- function(model, model_name){
   
   cooks <- cooks.distance(model)

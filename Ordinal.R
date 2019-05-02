@@ -7,6 +7,8 @@ source('/Users/jeanettejin/stat149project/Functions.R')
 path <- '/Users/jeanettejin/stat149project/'
 ami <- load.data(path)
 
+str(ami)
+
 # dropped dataframe and converted dataframe
 ami.drop <- ami[complete.cases(ami), ]
 ami.convert <- na.convert.mean(ami)
