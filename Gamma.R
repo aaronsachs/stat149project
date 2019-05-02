@@ -5,6 +5,7 @@ source('Functions.R')
 # load in data
 path <- '/Users/jeanettejin/stat149project/'
 ami <- load.data(path)
+str(ami)
 
 ami <- ami[ami$LOS != 0, ]
 

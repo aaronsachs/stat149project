@@ -76,6 +76,22 @@ load.data <- function(path){
   
 }
 
+prediction.load.data <- function(path){
+  set.seed(101) 
+  # load in clean version
+  ami <- load.data(path)
+  
+  # subset train and test
+  test.ind <- sample(seq_len(nrow(ami)), size = 3000)
+  ami.test <- ami[test.ind, ]
+  ami.train <- ami[-test.ind, ]
+  
+  # return train and test sets
+  returning = list("train" = ami.train, 'test' = ami.test)
+  return(returning)
+  
+}
+
 
 next_best <- function(model_str1, model_str2, 
                       current.formula, predictors,
