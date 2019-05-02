@@ -60,23 +60,19 @@ load.data <- function(path){
   # drop this value
   ami <- ami[ami$LOS != 0, ]
   
-  
   ami$LOGCHARGES <- log(ami$CHARGES)
-  
-  # take hospital interp
-  # na.convert.mean
   
   # drop died, and charges
   ami$CHARGES <- NULL
   ami$DIED <- NULL
 
+  ami <- na.convert.mean(ami)
+  
   # turn specific columns to factors
-  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG')
+  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
-  
-  ami_final <- na.convert.mean(ami)
-  return(ami_final)
+  return(ami)
   
 }
 
