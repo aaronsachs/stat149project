@@ -4,6 +4,7 @@ if (!require(aod)) {install.packages("aod"); require(aod)}
 ############# FUNCTIONS #################
 ############# ############# ############# 
 
+# missing value 
 na.convert.mean = function(frame) {
   vars <- names(frame)
   if (!is.null(resp <- attr(attr(frame, "terms"), "response"))) {
@@ -52,7 +53,7 @@ na.convert.mean = function(frame) {
   frame
 }
 
-
+# data loading
 load.data <- function(path){
   print(paste(path, 'amidata.csv', sep = ''))
   ami <- read.csv(paste(path, 'amidata.csv', sep =''))
@@ -76,6 +77,7 @@ load.data <- function(path){
   
 }
 
+# data loading
 prediction.load.data <- function(path){
   set.seed(101) 
   # load in clean version
@@ -96,7 +98,7 @@ prediction.load.data <- function(path){
   
 }
 
-
+# select next best predictor
 next_best <- function(model_str1, model_str2, 
                       current.formula, predictors,
                       data, test = 'Chisq', tie_max_better = TRUE){
@@ -154,7 +156,7 @@ next_best <- function(model_str1, model_str2,
 
 
 
-
+# analysis of deviance automated
 best_model <- function(model_str1, model_str2, dependent.name, predictors, data, test = "Chisq"){
   tilde = '~'
   formula.start <- paste(dependent.name, tilde,  sep = " ")
@@ -232,7 +234,7 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
 
 ############
 
-
+# residual plot function
 resid_plot <- function(model, model_name){
   # diagnostics
   fitted <- fitted(model)
@@ -247,6 +249,7 @@ resid_plot <- function(model, model_name){
   abline(h=0,lty=2,col="green")
 }
 
+# cooks plot function
 cooks_plot <- function(model, model_name){
   
   cooks <- cooks.distance(model)
