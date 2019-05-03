@@ -58,11 +58,10 @@ load.data <- function(path){
   print(paste(path, 'amidata.csv', sep = ''))
   ami <- read.csv(paste(path, 'amidata.csv', sep =''))
   
-  # drop this value
-  ami <- ami[ami$LOS != 0, ]
+  ami <- ami[!ami$LOS == 0, ]
   
   # drop low values of charges
-  ami <- ami[ami$CHARGES > 300,]
+  ami <- ami[(!ami$CHARGES < 300) | (is.na(ami$CHARGES)),]
   
   ami$LOGCHARGES <- log(ami$CHARGES)
   
@@ -70,7 +69,29 @@ load.data <- function(path){
   ami$DIED <- NULL
 
   ami <- na.convert.mean(ami)
+  print(str(ami))
+  # turn specific columns to factors
+  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
+  ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
+  return(ami)
+}
+
+# data loading
+load.data.show <- function(path){
+  print(paste(path, 'amidata.csv', sep = ''))
+  ami <- read.csv(paste(path, 'amidata.csv', sep =''))
+  
+  ami <- ami[!ami$LOS == 0, ]
+  
+  
+  ami$LOGCHARGES <- log(ami$CHARGES)
+  
+  # drop died, and charges
+  ami$DIED <- NULL
+  
+  ami <- na.convert.mean(ami)
+  print(str(ami))
   # turn specific columns to factors
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
@@ -261,5 +282,38 @@ cooks_plot <- function(model, model_name){
        ylab="Cook's distances",
        main=paste("Cook's distances", model_name))
   abline(h=1,lty=2,col="red")
+  
+}
+
+jacks_plot <- function(model, model_name){
+  fitted <- fitted(model)
+  jresid <- rstudent(model)
+  
+  plot(fitted, jresid,
+       xlab="Fitted probabilities",
+       ylab="Jackknifed residuals",
+       pch=19, col="red", cex=1.5,
+       main= paste("Fitted vs jackknifed", model_name))
+  abline(h=0,lty=2,col="green")
+}
+
+
+interact.plot <- function(cat1, cat2){
+  
+  cat1 <- cat1
+  cat2 <- cat2
+  
+  ami %>% 
+    group_by( eval(parse(text = cat1)), eval(parse(text = cat2))) %>% 
+    summarise(mean_los = mean(LOS)) -> inter.val
+  
+  colnames(inter.val)[1] <- cat1
+  colnames(inter.val)[2] <- cat2
+  
+  inter.val %>% 
+    ggplot() + 
+    aes(x = eval(parse(text = cat1)), y = mean_los, color = eval(parse(text = cat2))) +
+    geom_line(aes(group = eval(parse(text = cat2)))) +
+    geom_point() +  xlab(cat1) + labs(color=cat2) + labs(title = paste(cat1, cat2))
   
 }
