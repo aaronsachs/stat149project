@@ -64,7 +64,6 @@ load.data <- function(path){
   ami$LOGCHARGES <- log(ami$CHARGES)
   
   # drop died, and charges
-  ami$CHARGES <- NULL
   ami$DIED <- NULL
 
   ami <- na.convert.mean(ami)
@@ -83,9 +82,9 @@ prediction.load.data <- function(path){
   # load in clean version
   ami <- load.data(path)
   
-  # ami$DRG <- NULL
-  # ami$LOGCHARGES <- NULL
-  # ami$LOGCHARGES.na <- NULL
+  ami$DRG <- NULL
+  ami$LOGCHARGES <- NULL
+  ami$LOGCHARGES.na <- NULL
   
   # subset train and test
   test.ind <- sample(seq_len(nrow(ami)), size = 3000)
@@ -234,7 +233,7 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
 
 ############
 
-# residual plot function
+# residual plot 
 resid_plot <- function(model, model_name){
   # diagnostics
   fitted <- fitted(model)
@@ -245,11 +244,11 @@ resid_plot <- function(model, model_name){
        xlab="Fitted values",
        ylab="Deviance residuals",
        pch=19, col="red", cex=1.5,
-       main=paste("Fitted vs deviance residual plot", model_name))
+       main=paste("Fitted vs. Dev Residual", model_name))
   abline(h=0,lty=2,col="green")
 }
 
-# cooks plot function
+# cooks plot
 cooks_plot <- function(model, model_name){
   
   cooks <- cooks.distance(model)
