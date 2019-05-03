@@ -152,14 +152,14 @@ amin <-read.csv('/Users/jeanettejin/stat149project/amidata.csv')
 
 missing.data <- amin[!complete.cases(amin),]
 notmissing.data <- amin[complete.cases(amin), ]
-            
 
-      
+
+
 
 table(missing.data$) /699
 table(notmissing.data$DRG) / 12145
-                     
-                     
+
+
 not.missing <- ggplot(amin[complete.cases(amin), ], aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
   labs(title = "LOS Not Including Missing Value Rows", x = "LOS", y = " ") 
 missing <- ggplot(amin[!complete.cases(amin), ], aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 

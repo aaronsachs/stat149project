@@ -61,6 +61,9 @@ load.data <- function(path){
   # drop this value
   ami <- ami[ami$LOS != 0, ]
   
+  # drop low values of charges
+  ami <- ami[ami$CHARGES > 300,]
+  
   ami$LOGCHARGES <- log(ami$CHARGES)
   
   # drop died, and charges
@@ -73,7 +76,6 @@ load.data <- function(path){
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
   return(ami)
-  
 }
 
 # data loading
