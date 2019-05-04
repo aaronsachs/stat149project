@@ -1,6 +1,6 @@
 
 if (!require(aod)) {install.packages("aod"); require(aod)}
-
+if (!require(caTools)) {install.packages("caTools"); require(caTools)}
 ############# FUNCTIONS #################
 ############# ############# ############# 
 
@@ -69,7 +69,7 @@ load.data <- function(path){
   ami$DIED <- NULL
 
   ami <- na.convert.median(ami)
-  print(str(ami))
+ 
   # turn specific columns to factors
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
@@ -82,7 +82,7 @@ load.data <- function(path){
 
 # data loading
 load.data.show <- function(path){
-  print(paste(path, 'amidata.csv', sep = ''))
+  #print(paste(path, 'amidata.csv', sep = ''))
   ami <- read.csv(paste(path, 'amidata.csv', sep =''))
   
   ami <- ami[!ami$LOS == 0, ]
@@ -103,16 +103,13 @@ load.data.show <- function(path){
 }
 
 # data loading
-prediction.load.data <- function(path){
-  set.seed(101) 
+train.test.split <- function(path){
+  set.seed(1099) 
   # load in clean version
   ami <- load.data(path)
   
-  ami$DRG <- NULL
-  ami$LOGCHARGES <- NULL
-  ami$LOGCHARGES.na <- NULL
-  
   # subset train and test
+  
   test.ind <- sample(seq_len(nrow(ami)), size = 3000)
   ami.test <- ami[test.ind, ]
   ami.train <- ami[-test.ind, ]
@@ -256,7 +253,12 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
 # best <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami.od.na)
 
 
-
+#### function that takes in a current model and consideirs additional predictors in predictors.list
+# model.str1 = first part of model string ex: 'glm('
+# model.str2 = second part of model string ex: ', data = ami, family = gamma)'
+# current.formula = your current formula ex: 'LOS ~ LOGPRICE + DRG'
+# predictors.list = must be an array for exam: c('SEX', 'DIAGNOSIS')
+# test default is "Chisq" but change if need "F" for anova
 consider_predictors <- function(model.str1, model.str2, current.formula, predictors.list, test = "Chisq"){
   base.model.str <- paste(model.str1, current.formula, model.str2)
   base.model <- eval(parse(text = base.model.str))
@@ -300,7 +302,7 @@ consider_predictors <- function(model.str1, model.str2, current.formula, predict
 # ### USAGE
 # model.str1 <- 'glm('
 # model.str2 <- ',  poisson(link = "log"), data = ami)'
-# current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES + AGE'
+# current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES + AGE + LOGCHARGES.na'
 # predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:SEX','DIAGNOSIS:LOGCHARGES.na',
 #                       'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na',
 #                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG',
@@ -313,7 +315,6 @@ consider_predictors <- function(model.str1, model.str2, current.formula, predict
 
 
 
-############
 
 # residual plot 
 resid_plot <- function(model, model_name){
@@ -344,6 +345,7 @@ cooks_plot <- function(model, model_name){
   
 }
 
+# jacks_plot
 jacks_plot <- function(model, model_name){
   fitted <- fitted(model)
   jresid <- rstudent(model)
@@ -356,7 +358,9 @@ jacks_plot <- function(model, model_name){
   title(paste("Fitted vs jackknifed", model_name), line = -2)
 }
 
-
+###### FUNCTION USED TO VISUALIZE FUNCTIONS (only cat:cat)
+## cat1 = first categorical variable
+## cat3 = second categorical variable
 interact.plot <- function(cat1, cat2){
   
   cat1 <- cat1
@@ -377,6 +381,10 @@ interact.plot <- function(cat1, cat2){
   
 }
 
+
+##### FUNCTION TO PLOT DIAGNOSTICS ON SAME FIGURE (3 PANEL)
+# model_name is a string (USE THE MODEL NAME)
+# model is the model
 diagnostic_plots <- function(model, model_name){
   par(mfrow=c(1,3))
   resid_plot(model, '')
@@ -384,3 +392,85 @@ diagnostic_plots <- function(model, model_name){
   jacks_plot(model, '')
   mtext(model_name, side = 3, line = -3, outer = TRUE)
 }
+
+
+##################
+################## METRICS
+
+predict.counts <- function(model, data){
+  predict.counts <- data.frame(table(round(predict(model, data, type = "response"))))
+  predict.counts <- data.frame(apply(predict.counts, 2, function(x) as.numeric(as.character(x))))
+  return(predict.counts)
+  
+}
+
+actual.counts <- function(data){
+  actual.counts <- data.frame(table(data$LOS))
+  actual.counts <- data.frame(apply(actual.counts, 2, function(x) as.numeric(as.character(x))))
+  return(actual.counts)
+  
+}
+goodness.fit <- function(predict.counts, actual.counts){
+  # predict.counts <- data.frame(table(round(predict(model, type = "response"))))
+  # actual.counts <- data.frame(table(ami$LOS))
+  # 
+  # predict.counts <- data.frame(apply(predict.counts, 2, function(x) as.numeric(as.character(x))))
+  # actual.counts <- data.frame(apply(actual.counts, 2, function(x) as.numeric(as.character(x))))
+  # 
+  min.value <- min(predict.counts$Var1, actual.counts$Var1)
+  max.value <- max(predict.counts$Var1, actual.counts$Var1)
+  
+  inner_sum <- c()
+  counter = 0
+  
+  for (i in min.value:max.value){
+    E <- predict.counts[predict.counts$Var1 == i,]$Freq
+    O <- actual.counts[actual.counts$Var1 == i,]$Freq
+    
+    if (length(O) == 0){
+      O <- 0
+    }
+    if (length(E) == 0){
+      E<- 0
+      inner_sum[counter] <- 0 
+      break
+    }
+    
+    inner_sum[counter] <- ((O - E)^2 )/ E
+    counter = counter + 1
+  }
+  return(sum(inner_sum))
+}
+
+goodness.fit.model <- function(model){
+  predict.counts <- data.frame(table(round(predict(model, type = "response"))))
+  actual.counts <- data.frame(table(ami$LOS))
+
+  predict.counts <- data.frame(apply(predict.counts, 2, function(x) as.numeric(as.character(x))))
+  actual.counts <- data.frame(apply(actual.counts, 2, function(x) as.numeric(as.character(x))))
+
+  min.value <- min(predict.counts$Var1, actual.counts$Var1)
+  max.value <- max(predict.counts$Var1, actual.counts$Var1)
+  
+  inner_sum <- c()
+  counter = 0
+  
+  for (i in min.value:max.value){
+    E <- predict.counts[predict.counts$Var1 == i,]$Freq
+    O <- actual.counts[actual.counts$Var1 == i,]$Freq
+    
+    if (length(O) == 0){
+      O <- 0
+    }
+    if (length(E) == 0){
+      E<- 0
+      inner_sum[counter] <- 0 
+      break
+    }
+    
+    inner_sum[counter] <- ((O - E)^2 )/ E
+    counter = counter + 1
+  }
+  return(sum(inner_sum))
+}
+
