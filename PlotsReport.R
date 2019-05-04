@@ -54,8 +54,11 @@ resid_plot(fit.w.log, 'Log Charges')
 amid <- load.data.show(path)
 
 # summary of ami shows min charges is 3, which is really small
-summary(amid
-        )
+summary(amid)
+
+length(amid[amid$CHARGES < 300,]$CHARGES)
+
+mean(amid[amid$LOS == 6,]$CHARGES)
 
 amid.less.1000 <-  amid[amid$CHARGES < 1000,]
 

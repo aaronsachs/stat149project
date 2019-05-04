@@ -8,87 +8,75 @@ source('Functions.R')
 path <- '/Users/jeanettejin/stat149project/'
 ami <- load.data(path)
 str(ami)
-ami.drop.1000 <-  ami[ami$CHARGES > 1000,]
-ami.drop.500 <- ami[ami$CHARGES > 500,]
-ami.drop.300 <- ami[ami$CHARGES > 300,]
-
-
-
-
-gamma <- glm(LOS ~  AGE  + DRG + SEX + DIAGNOSIS + log(CHARGES) + CHARGES.na,  family = Gamma(log), data = ami)
-
-
-negbin <-  glm.nb(LOS ~  AGE  + DRG + SEX + DIAGNOSIS + log(CHARGES), data = ami)
-
-poisson <- glm(LOS ~  AGE  + DRG + SEX + DIAGNOSIS + LOGCHARGES + CHARGES.na, family='poisson', data=ami)
-poisson.drop.300 <- glm(LOS ~  AGE  + DRG + SEX + DIAGNOSIS + LOGCHARGES + CHARGES.na, family='poisson', data=ami.drop.300)
-poisson.drop.500 <- glm(LOS ~  AGE  + DRG + SEX + DIAGNOSIS + LOGCHARGES + CHARGES.na, family='poisson', data=ami.drop.500)
-poisson.drop.1000 <- glm(LOS ~  AGE  + DRG + SEX + DIAGNOSIS + LOGCHARGES + CHARGES.na, family='poisson', data=ami.drop.1000)
-
-par(mfrow=c(2,2))
-resid_plot(poisson, 'Poisson')
-resid_plot(poisson.drop.300, 'Poisson 300')
-resid_plot(poisson.drop.500, 'Poisson 500')
-resid_plot(poisson.drop.1000, 'Poisson 1000')
-
-resid_plot(gamma, 'gamma')
-
-resid_plot(negbin, "negbin")
-
 
 #######################################################################################
 ##############################          GAMMA         #################################
 ##############################                        #################################
 #######################################################################################
 
-# DRG:AGE, DRG:LOGCHARGES, DIAGNOSIS:LOGCHARGES, DIAGNOSES:SEX, 
 
-
-#### with dropped data ########
+# find the best model full effects
 model_str1 <- 'glm('
 model_str2 <- ',family = Gamma(log), data = ami)'
-predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'log(CHARGES + 2000)' , 'AGE', 'LOGCHARGES.na', 'DRG:AGE', 'DRG:LOGCHARGES', 'DIAGNOSIS:LOGCHARGES', 'DIAGNOSIS:SEX')
+predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na', 'DRG:AGE', 'DRG:LOGCHARGES', 'DIAGNOSIS:LOGCHARGES', 'DIAGNOSIS:SEX')
 dependent.name <- "LOS"
 
-# find the best model
+
 gamma.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'F')
-gamma.bm <- glm(LOS ~ log(CHARGES + 2000) + DRG:AGE +  DIAGNOSIS:LOGCHARGES + DRG + DRG:LOGCHARGES + SEX + DIAGNOSIS + LOGCHARGES.na + DIAGNOSIS:SEX , family = Gamma(log), data = ami)
+gamma.bm <- glm(gamma.bm.str , family = Gamma(log), data = ami)
 
-cooks <- cooks.distance(gamma.bm)
+# find the best model after full effect fit including interactions
+model.str1 <- 'glm('
+model.str2 <- ',  Gamma(log), data = ami)'
+current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES + AGE'
+predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:SEX','DIAGNOSIS:LOGCHARGES.na',
+                      'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na', 
+                      'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
+                      'AGE:DIAGNOSIS')
+
+
+gamma.bm.inter.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list, "F")
+gamma.bm.inter <- glm(gamma.bm.inter.str , family = Gamma(log), data = ami)
+
+resid_plot(gamma.bm.inter, 'Gamma w/ Interact')
 
 
 
-load.data <- function(path){
-  print(paste(path, 'amidata.csv', sep = ''))
-  ami <- read.csv(paste(path, 'amidata.csv', sep =''))
-  
-  # drop this value
-  ami <- ami[ami$LOS != 0, ]
-  
-  ami$LOGCHARGES <- log(ami$CHARGES)
-  
-  # drop died
-  ami$DIED <- NULL
-  
-  # convert
-  ami <- na.convert.mean(ami)
-  
-  # turn specific columns to factors
-  factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
-  ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
-  
-  return(ami)
-  
-}
 
-# INSERT PATH HERE
-#path <- '/Users/jeanettejin/stat149project/'
-ami <- load.data(path)
 
-# this does not converge 
-gamma.not.converge <- glm(LOS ~ log(CHARGES) + DRG + SEX + DIAGNOSIS + LOGCHARGES.na  , family = Gamma(log), data = ami)
 
-gamma.converge <- glm(LOS ~ log(CHARGES + 2000) + DRG + SEX + DIAGNOSIS + LOGCHARGES.na  , family = Gamma(log), data = ami)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# model.str1 <- 'glm('
+# model.str2 <- ',  poisson(link = "log"), data = ami)'
+# current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES + AGE'
+# predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:SEX','DIAGNOSIS:LOGCHARGES.na',
+#                       'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na', 
+#                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
+#                       'AGE:DIAGNOSIS')
+# 
+# 
+# poisson.inter.model.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list)
+# poisson.inter.bm <- glm(poisson.inter.model.str, poisson(link = "log"), data = ami)
+# 
+# summary(poisson.inter.bm)
+
+
+
+
+
+
 
 
 

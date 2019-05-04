@@ -77,6 +77,9 @@ load.data <- function(path){
   return(ami)
 }
 
+# path <- '/Users/jeanettejin/stat149project/'
+# str(load.data(path))
+
 # data loading
 load.data.show <- function(path){
   print(paste(path, 'amidata.csv', sep = ''))
@@ -178,6 +181,8 @@ next_best <- function(model_str1, model_str2,
 
 
 
+
+
 # analysis of deviance automated
 best_model <- function(model_str1, model_str2, dependent.name, predictors, data, test = "Chisq"){
   tilde = '~'
@@ -253,6 +258,45 @@ best_model <- function(model_str1, model_str2, dependent.name, predictors, data,
 # # find the best model
 # best <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami.od.na)
 
+
+
+consider_predictors <- function(model.str1, model.str2, current.formula, predictors.list, test = "Chisq"){
+  base.model.str <- paste(model.str1, current.formula, model.str2)
+  base.model <- eval(parse(text = base.model.str))
+  continue <- 1
+  
+  while (continue  == 1){
+    formulas <- c()
+    p.value <- c()
+    
+    for (i in 1:length(predictors.list)){
+      formulas[i] <- paste(current.formula, predictors.list[i], sep = ' + ')
+      next.model.str <- paste(model.str1, formulas[i], model.str2, sep ="")
+      
+      next.model <- eval(parse(text = next.model.str))
+      anova.results <- anova(base.model, next.model, test = test)
+      print(anova.results)
+      p.value[i] <-  anova.results[length(anova.results)][2, ]
+    }
+    index <- which(p.value == min(p.value, na.rm = TRUE))
+    
+    if (p.value[index] > .05){
+      continue <- 0
+      break 
+    }else{
+      base.model.str <- paste(model.str1, formulas[index], model.str2, sep ="")
+      base.model <- eval(parse(text = base.model.str))
+      current.formula <- formulas[index]
+      predictors.list <- predictors.list[predictors.list != predictors.list[index]] 
+      
+      if (length(predictors.list) == 0){
+        continue <- 0
+        break
+      }
+    }
+  }
+  return(current.formula)
+}
 
 ############
 

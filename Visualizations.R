@@ -18,7 +18,7 @@ ami$CHARGES <- NULL
 ami$Patient <- NULL
 ami$CHARGES.na <- NULL
 
-summary(ami)
+
 #######################################################################################
 ##############################    VISUALIZATIONS    ###################################
 ##############################                      ###################################
@@ -68,7 +68,7 @@ los <- ggplot(ami, aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() +
 los
 
 # charges 
-charges.los <- ggplot(ami, aes(x = log(CHARGES), y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
+charges.los <- ggplot(ami, aes(x = LOGCHARGES, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
   labs(title = "LOS by LogCharges", x = "LogCharges", y = "LOS")
 charges.los
 
