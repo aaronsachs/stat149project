@@ -80,7 +80,7 @@ load.data <- function(path){
   # drop died, and charges
   ami$DIED <- NULL
 
-  ami <- na.convert.median(ami)
+  ami <- na.convert.mean(ami)
  
   # turn specific columns to factors
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')

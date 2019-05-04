@@ -1,4 +1,3 @@
-
 source('/Users/jeanettejin/stat149project/Functions.R')
 import('car')
 import('gridExtra')
