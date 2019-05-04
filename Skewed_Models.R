@@ -1,9 +1,11 @@
-if (!require(aod)) {install.packages("aod"); require(aod)}
-library(MASS)
-library(stats)
-library(mgcv)
 
 source('/Users/jeanettejin/stat149project/Functions.R')
+
+import('aod')
+import('MASS')
+import('stats')
+import('mgcv')
+import('gridExtra')
 
 # load in data
 path <- '/Users/jeanettejin/stat149project/'
@@ -129,6 +131,12 @@ dev.off()
 
 
 
+#######################################################################################
+##############################   COMPARING MODELS  ###################################
+##############################                     ###################################
+#######################################################################################
+
+
 gamma.chi <- goodness.fit.model(gamma.bm)
 gamma.inter.chi <- goodness.fit.model(gamma.bm.inter)
 invg.chi <- goodness.fit.model(invg.bm)
@@ -152,7 +160,7 @@ test.chi.stat <- c(gamma.tchi, gamma.inter.tchi, invg.tchi, invg.inter.tchi, twe
 pander(data.frame(names, chi.stat, test.chi.stat))
 
 
-
+# final model is Gamma
 
 
 

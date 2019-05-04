@@ -1,6 +1,18 @@
+import <- function(package){
+  str1 <-'if (!require('
+  str2 <- package
+  str3 <- ')) {install.packages("'
+  str4 <- package
+  str5 <- '"); require('
+  str6 <-  package
+  str7<- ')}'
+  import.str <- paste(str1, str2, str3, str4, str5, str6, str7, set = '')
+  eval(parse(text = import.str))
+}
 
-if (!require(aod)) {install.packages("aod"); require(aod)}
-if (!require(caTools)) {install.packages("caTools"); require(caTools)}
+import('aod')
+import('caTools')
+
 ############# FUNCTIONS #################
 ############# ############# ############# 
 
@@ -303,7 +315,7 @@ consider_predictors <- function(model.str1, model.str2, current.formula, predict
 # model.str1 <- 'glm('
 # model.str2 <- ',  poisson(link = "log"), data = ami)'
 # current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES + AGE + LOGCHARGES.na'
-# predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:SEX','DIAGNOSIS:LOGCHARGES.na',
+# predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
 #                       'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na',
 #                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG',
 #                       'AGE:DIAGNOSIS')
@@ -381,7 +393,6 @@ interact.plot <- function(cat1, cat2){
   
 }
 
-
 ##### FUNCTION TO PLOT DIAGNOSTICS ON SAME FIGURE (3 PANEL)
 # model_name is a string (USE THE MODEL NAME)
 # model is the model
@@ -410,6 +421,7 @@ actual.counts <- function(data){
   return(actual.counts)
   
 }
+
 goodness.fit <- function(predict.counts, actual.counts){
   # predict.counts <- data.frame(table(round(predict(model, type = "response"))))
   # actual.counts <- data.frame(table(ami$LOS))
@@ -474,3 +486,22 @@ goodness.fit.model <- function(model){
   return(sum(inner_sum))
 }
 
+
+##### FIND THE CHI TEST STATISTIC ON TEST SET
+test.chi.sq <- function(str1){
+  split <- train.test.split(path)
+  train <- split$train
+  test <- split$test
+  
+  str2 <- 'data = train)'
+  
+  paste(str1, str2)
+  model <- eval(parse(text = paste(str1, str2)))
+  round(predict(model, test, type = "response"))
+  
+  predictc <- predict.counts(model, test)
+  actualc <- actual.counts(test)
+  
+  return(goodness.fit(predictc, actualc))
+  
+}

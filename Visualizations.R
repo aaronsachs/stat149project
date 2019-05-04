@@ -1,13 +1,14 @@
-if (!require(aod)) {install.packages("aod"); require(aod)}
-if (!require(sjPlot)) {install.packages("sjPlot"); require(sjPlot)}
-if (!require(sjmisc)) {install.packages("sjmisc"); require(sjmisc)}
-if (!require(ggplot2)) {install.packages("ggplot2"); require(ggplot2)}
-if (!require(gridExtra)) {install.packages("gridExtra"); require(gridExtra)}
-if (!require(effects)) {install.packages("effects"); require(effects)}
-if (!require(dplyr)) {install.packages("dplyr"); require(dplyr)}
-
 
 source('/Users/jeanettejin/stat149project/Functions.R')
+
+import('aod')
+import('sjPlot')
+import('sjmisc')
+import('ggplot2')
+import('gridExtra')
+import('gridExtra')
+import('effects')
+import('dplyr')
 
 
 # load in data
