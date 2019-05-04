@@ -68,7 +68,7 @@ load.data <- function(path){
   # drop died, and charges
   ami$DIED <- NULL
 
-  ami <- na.convert.mean(ami)
+  ami <- na.convert.median(ami)
   print(str(ami))
   # turn specific columns to factors
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
@@ -178,9 +178,6 @@ next_best <- function(model_str1, model_str2,
     return(returning)
   }
 }
-
-
-
 
 
 # analysis of deviance automated
@@ -298,6 +295,24 @@ consider_predictors <- function(model.str1, model.str2, current.formula, predict
   return(current.formula)
 }
 
+
+
+# ### USAGE
+# model.str1 <- 'glm('
+# model.str2 <- ',  poisson(link = "log"), data = ami)'
+# current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES + AGE'
+# predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:SEX','DIAGNOSIS:LOGCHARGES.na',
+#                       'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na',
+#                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG',
+#                       'AGE:DIAGNOSIS')
+# 
+# 
+# poisson.bm.inter.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list)
+# poisson.bm.inter <- glm(poisson.bm.inter.str, poisson(link = "log"), data = ami)
+# 
+
+
+
 ############
 
 # residual plot 
@@ -310,9 +325,9 @@ resid_plot <- function(model, model_name){
   plot(fitted, devresid,
        xlab="Fitted values",
        ylab="Deviance residuals",
-       pch=19, col="red", cex=1.5,
-       main=paste("Fitted vs. Dev Residual", model_name))
+       pch=19, col="red", cex=1.5)
   abline(h=0,lty=2,col="green")
+  title(paste("Fitted vs. Dev Residual", model_name), line = -2)
 }
 
 # cooks plot
@@ -323,9 +338,9 @@ cooks_plot <- function(model, model_name){
   # Cooks distances
   plot(cooks, type="h", lwd=2,
        xlab="Observation index",
-       ylab="Cook's distances",
-       main=paste("Cook's distances", model_name))
+       ylab="Cook's distances")
   abline(h=1,lty=2,col="red")
+  title(paste("Cook's distances", model_name), line = -2)
   
 }
 
@@ -336,9 +351,9 @@ jacks_plot <- function(model, model_name){
   plot(fitted, jresid,
        xlab="Fitted probabilities",
        ylab="Jackknifed residuals",
-       pch=19, col="red", cex=1.5,
-       main= paste("Fitted vs jackknifed", model_name))
+       pch=19, col="red", cex=1.5)
   abline(h=0,lty=2,col="green")
+  title(paste("Fitted vs jackknifed", model_name), line = -2)
 }
 
 
@@ -360,4 +375,12 @@ interact.plot <- function(cat1, cat2){
     geom_line(aes(group = eval(parse(text = cat2)))) +
     geom_point() +  xlab(cat1) + labs(color=cat2) + labs(title = paste(cat1, cat2))
   
+}
+
+diagnostic_plots <- function(model, model_name){
+  par(mfrow=c(1,3))
+  resid_plot(model, '')
+  cooks_plot(model, '')
+  jacks_plot(model, '')
+  mtext(model_name, side = 3, line = -3, outer = TRUE)
 }
