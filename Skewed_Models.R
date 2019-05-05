@@ -8,6 +8,7 @@ import('mgcv')
 import('gridExtra')
 import('pander')
 
+
 # load in data
 path <- '/Users/jeanettejin/stat149project/'
 ami <- load.data(path)
@@ -98,7 +99,7 @@ model_str2 <- ',family=tw(link="log"), data = ami)'
 predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na')
 dependent.name <- "LOS"
 
-twe.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'Chisq')
+twe.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'F')
 twe.bm <- gam(twe.bm.str, family=tw(link="log"), data = ami)
 summary(twe.bm)
 
@@ -160,7 +161,10 @@ chi.stat <- c(gamma.chi, gamma.inter.chi, invg.chi, invg.inter.chi, twe.chi, twe
 test.chi.stat <- c(gamma.tchi, gamma.inter.tchi, invg.tchi, invg.inter.tchi, twe.tchi, twe.inter.tchi)
 
 skew.table.comparison <- data.frame(model, chi.stat, test.chi.stat)
-pander(skew.table.comparison)
+rownames(skew.table.comparison) <- NULL
+colnames(skew.table.comparison) <- c('Model', 'Chi Stat', 'Chi Stat Test Set')
+dev.off()
+grid.table(skew.table.comparison, row = c('','',' ','','',''))
 # final model is Gamma
 
 
