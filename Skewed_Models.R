@@ -1,9 +1,13 @@
-if (!require(aod)) {install.packages("aod"); require(aod)}
-library(MASS)
-library(stats)
-library(mgcv)
 
 source('/Users/jeanettejin/stat149project/Functions.R')
+
+import('aod')
+import('MASS')
+import('stats')
+import('mgcv')
+import('gridExtra')
+import('pander')
+
 
 # load in data
 path <- '/Users/jeanettejin/stat149project/'
@@ -95,7 +99,7 @@ model_str2 <- ',family=tw(link="log"), data = ami)'
 predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na')
 dependent.name <- "LOS"
 
-twe.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'Chisq')
+twe.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'F')
 twe.bm <- gam(twe.bm.str, family=tw(link="log"), data = ami)
 summary(twe.bm)
 
@@ -103,6 +107,7 @@ par(mfrow=c(1,2))
 resid_plot(twe.bm, '')
 cooks_plot(twe.bm, '')
 mtext('Tweedie Full Effect', side = 3, line = -3, outer = TRUE)
+
 dev.off()
 
 
@@ -129,6 +134,12 @@ dev.off()
 
 
 
+#######################################################################################
+##############################   COMPARING MODELS  ###################################
+##############################                     ###################################
+#######################################################################################
+
+
 gamma.chi <- goodness.fit.model(gamma.bm)
 gamma.inter.chi <- goodness.fit.model(gamma.bm.inter)
 invg.chi <- goodness.fit.model(invg.bm)
@@ -149,10 +160,12 @@ model <- c('Gamma', "Gamma + Inter", "InvG", 'InvG + Inter', 'Tweedle', 'Tweedle
 chi.stat <- c(gamma.chi, gamma.inter.chi, invg.chi, invg.inter.chi, twe.chi, twe.inter.chi)
 test.chi.stat <- c(gamma.tchi, gamma.inter.tchi, invg.tchi, invg.inter.tchi, twe.tchi, twe.inter.tchi)
 
-pander(data.frame(names, chi.stat, test.chi.stat))
-
-
-
+skew.table.comparison <- data.frame(model, chi.stat, test.chi.stat)
+rownames(skew.table.comparison) <- NULL
+colnames(skew.table.comparison) <- c('Model', 'Chi Stat', 'Chi Stat Test Set')
+dev.off()
+grid.table(skew.table.comparison, row = c('','',' ','','',''))
+# final model is Gamma
 
 
 
