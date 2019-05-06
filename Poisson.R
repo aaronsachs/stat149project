@@ -1,3 +1,4 @@
+
 source('~/Documents/STAT149/proyecto/lucas/Functions.R')
 
 if (!require(aod)) {install.packages("aod"); require(aod)}
@@ -18,6 +19,7 @@ ami <- load.data(path)
 str(ami)
 
 ami <- ami[ami$CHARGES > 300,]
+
 
 #######################################################################################
 ##############################          POISSON       #################################
@@ -74,39 +76,24 @@ grid.table(data.frame(model, chi.stat, test.chi.stat), row = c('',''))
 ##############################           HURDLE        ################################
 #######################################################################################
 
-mod1 <- hurdle((LOS-1) ~ LOGCHARGES+DRG+AGE+LOGCHARGES.na+DIAGNOSIS
-               |LOGCHARGES+LOGCHARGES.na, dist='poisson',data=ami)
-
-mod2 <- hurdle((LOS-1) ~ LOGCHARGES+DRG+AGE+LOGCHARGES.na+DIAGNOSIS+SEX
-               |LOGCHARGES+LOGCHARGES.na, dist='poisson',data=ami)
-
-
-
-lrt <- 2*(mod2$loglik-mod1$loglik)
-degrees <- mod2$df.residual-mod1$df.residual
-
-1-pchisq(lrt,degrees)
+ami$LOS <- ami$LOS-1 
 
 response_str <- 'LOS'
 predictor_str <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na')
 hurdle_best <- function(response_str,predictor_str){
   
-  # rescale data
-  ami2 <- ami
-  ami2$LOS <- ami$LOS-1
-  
   # fit full model
   predictors.str <- paste(predictor_str,collapse=" + ")
-  full.str <- paste('hurdle(',response_str,'~',predictors.str,',dist=\'poisson\',data = ami2)',sep="")
+  full.str <- paste('hurdle(',response_str,'~',predictors.str,',dist=\'poisson\',data = ami)',sep="")
   hurdle.best <- eval(parse(text=full.str))
   
   p <- 0.05
   
   # fit all possible H_0
-  nulls <- apply(cbind(paste(names(ami2)[6],"~"),data.frame(t(combn(predictor_str, (length(predictor_str)-1))))), 1, paste, collapse="+")
+  nulls <- apply(cbind(paste(names(ami)[6],"~"),data.frame(t(combn(predictor_str, (length(predictor_str)-1))))), 1, paste, collapse="+")
   model.nulls.str <- rep(NA,length(nulls))
   for (i in 1:length(nulls)){
-    model.nulls.str[i] <- paste('hurdle(',nulls[i],',dist=\'poisson\',data = ami2)',sep="")
+    model.nulls.str[i] <- paste('hurdle(',nulls[i],',dist=\'poisson\',data = ami)',sep="")
     model.null <- eval(parse(text=model.nulls.str[i]))
     lrt <- 2*(hurdle.best$loglik-model.null$loglik)
     degrees <- model.null$df.residual-hurdle.best$df.residual
@@ -119,9 +106,10 @@ hurdle_best <- function(response_str,predictor_str){
 }
 
 best.hurdle.model <- hurdle_best(response_str,predictor_str)
-ami$LOS <- ami$LOS-1
+
 diagnostic_plots(best.hurdle.model, "Poisson Hurdle Final Model")
 poisson.chi <- goodness.fit.model(best.hurdle.model)
+
 poisson.tchi <- test.chi.sq('hurdle(formula = best.hurdle.model, family = \'poisson\',')
 
 
@@ -133,4 +121,5 @@ predictor_str_inter <- c(predictor_str,'DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na'
                          'AGE:DIAGNOSIS')
 
 best.hurdle.model.inter <- hurdle_best(response_str,predictor_str_inter)
+
 

@@ -86,6 +86,7 @@ load.data <- function(path){
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
+<<<<<<< HEAD
   return(ami)
 }
 
@@ -101,6 +102,9 @@ load.data.show <- function(path){
   
   
   ami$LOGCHARGES <- log(ami$CHARGES)
+=======
+  return(na.convert.mean(ami))
+>>>>>>> 4826ea286989955f974e61c2677af3baa27c68a8
   
   # drop died, and charges
   ami$DIED <- NULL
