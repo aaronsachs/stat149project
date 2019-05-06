@@ -67,6 +67,31 @@ na.convert.mean = function(frame) {
 
 # data loading
 load.data <- function(path){
+  if(path == '~/Documents/STAT149/proyecto/lucas/scaled_data/'){
+    print(paste(path, 'amidata.csv', sep = ''))
+    ami <- read.csv(paste(path, 'amidata.csv', sep =''))
+    
+    ami <- ami[!ami$LOS < 0, ]
+    
+    # drop low values of charges
+    ami <- ami[(!ami$CHARGES < 300) | (is.na(ami$CHARGES)),]
+    
+    ami$LOGCHARGES <- log(ami$CHARGES)
+    
+    # drop died, and charges
+    ami$DIED <- NULL
+    
+    ami <- na.convert.mean(ami)
+    
+    # turn specific columns to factors
+    factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
+    ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
+    
+    return(ami)
+  }
+  else{
+    
+  }
   print(paste(path, 'amidata.csv', sep = ''))
   ami <- read.csv(paste(path, 'amidata.csv', sep =''))
   
@@ -86,7 +111,6 @@ load.data <- function(path){
   factor.columns <- c("Patient", "DIAGNOSIS", 'SEX', 'DRG', 'LOGCHARGES.na')
   ami[, factor.columns] <- data.frame(apply(ami[factor.columns], 2, as.factor))
   
-<<<<<<< HEAD
   return(ami)
 }
 
@@ -102,9 +126,6 @@ load.data.show <- function(path){
   
   
   ami$LOGCHARGES <- log(ami$CHARGES)
-=======
-  return(na.convert.mean(ami))
->>>>>>> 4826ea286989955f974e61c2677af3baa27c68a8
   
   # drop died, and charges
   ami$DIED <- NULL
@@ -334,17 +355,32 @@ consider_predictors <- function(model.str1, model.str2, current.formula, predict
 
 # residual plot 
 resid_plot <- function(model, model_name){
-  # diagnostics
-  fitted <- fitted(model)
-  devresid <- residuals(model, type="deviance")
-  
-  # Residual plot (deviance residuals)
-  plot(fitted, devresid,
-       xlab="Fitted values",
-       ylab="Deviance residuals",
-       pch=19, col="red", cex=1.5)
-  abline(h=0,lty=2,col="green")
-  title(paste("Fitted vs. Dev Residual", model_name), line = -2)
+  if(path == '~/Documents/STAT149/proyecto/lucas/scaled_data/'){
+    # diagnostics
+    fitted <- fitted(model)
+    stdresid <- residuals(model, type="pearson")
+    
+    # Residual plot (pearson residuals)
+    plot(fitted, stdresid,
+         xlab="Fitted values",
+         ylab="Pearson residuals",
+         pch=19, col="red", cex=1.5)
+    abline(h=0,lty=2,col="green")
+    title(paste("Fitted vs. Residual", model_name), line = -2)
+  }
+  else{
+    # diagnostics
+    fitted <- fitted(model)
+    devresid <- residuals(model, type="deviance")
+    
+    # Residual plot (deviance residuals)
+    plot(fitted, devresid,
+         xlab="Fitted values",
+         ylab="Deviance residuals",
+         pch=19, col="red", cex=1.5)
+    abline(h=0,lty=2,col="green")
+    title(paste("Fitted vs. Dev Residual", model_name), line = -2)
+  }
 }
 
 # cooks plot
@@ -401,11 +437,16 @@ interact.plot <- function(cat1, cat2){
 # model_name is a string (USE THE MODEL NAME)
 # model is the model
 diagnostic_plots <- function(model, model_name){
-  par(mfrow=c(1,3))
-  resid_plot(model, '')
-  cooks_plot(model, '')
-  jacks_plot(model, '')
-  mtext(model_name, side = 3, line = -3, outer = TRUE)
+  if(path == '~/Documents/STAT149/proyecto/lucas/scaled_data/'){
+    resid_plot(model, '')
+  }
+  else{
+    par(mfrow=c(1,3))
+    resid_plot(model, '')
+    cooks_plot(model, '')
+    jacks_plot(model, '')
+    mtext(model_name, side = 3, line = -3, outer = TRUE)
+  }
 }
 
 
@@ -508,4 +549,31 @@ test.chi.sq <- function(str1){
   
   return(goodness.fit(predictc, actualc))
   
+}
+
+hurdle_best <- function(response_str,predictor_str){
+  
+  # fit full model
+  predictors.str <- paste(predictor_str,collapse=" + ")
+  full.str <- paste('hurdle(',response_str,'~',predictors.str,',dist=\'poisson\',data = ami)',sep="")
+  hurdle.best <- eval(parse(text=full.str))
+  
+  p <- 0.05
+  
+  # fit all possible H_0
+  for (j in 1:(length(predictor_str)-1)){
+    nulls <- apply(cbind(paste(names(ami)[6],"~"),data.frame(t(combn(predictor_str, (length(predictor_str)-j))))), 1, paste, collapse="+")
+    model.nulls.str <- rep(NA,length(nulls))
+    for (i in 1:length(nulls)){
+      model.nulls.str[i] <- paste('hurdle(',nulls[i],',dist=\'poisson\',data = ami)',sep="")
+      model.null <- eval(parse(text=model.nulls.str[i]))
+      lrt <- 2*(hurdle.best$loglik-model.null$loglik)
+      degrees <- model.null$df.residual-hurdle.best$df.residual
+      val[i] <- 1-pchisq(lrt,degrees)
+      if (val[i] > p){
+        hurdle.best <- model.null
+      }
+    }
+  }
+  return(hurdle.best)
 }
