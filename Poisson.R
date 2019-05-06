@@ -94,12 +94,13 @@ poisson.hurdle.inter.chi <- goodness.fit.model(best.hurdle.model)
 poisson.hurdle.inter.tchi <- test.chi.sq('hurdle(best.hurdle.model.inter, dist = \'poisson\',')
 
 model <- c('Poisson','Poisson + Inter','Poisson Hurdle', 'Poisson Hurdle + Inter')
+overdispersion <- c(poisson.bm$deviance/poisson.bm$df.residual,poisson.bm.inter$deviance/poisson.bm.inter$df.residual,'-','-')
 chi.stat <- c(poisson.chi,poisson.inter.chi,poisson.hurdle.chi,poisson.hurdle.inter.chi)
 test.chi.stat <- c(poisson.tchi,poisson.inter.tchi,poisson.hurdle.tchi,poisson.hurdle.inter.tchi)
 dev.off()
-pander(data.frame(model, chi.stat, test.chi.stat))
+pander(data.frame(model, formulas, chi.stat, test.chi.stat))
 
-grid.table(data.frame(model, chi.stat, test.chi.stat), row = c('','','',''))
+grid.table(data.frame(model, overdispersion, chi.stat, test.chi.stat), row = c('','','',''))
 
 par(mfrow=c(1,2))
 # diagnostics
