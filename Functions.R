@@ -8,6 +8,7 @@ import <- function(package){
   str7<- ')}'
   import.str <- paste(str1, str2, str3, str4, str5, str6, str7, set = '')
   eval(parse(text = import.str))
+  print(import.str)
 }
 
 import('aod')
@@ -495,7 +496,8 @@ test.chi.sq <- function(str1){
   
   str2 <- 'data = train)'
   
-  paste(str1, str2)
+  print(paste(str1, str2))
+  
   model <- eval(parse(text = paste(str1, str2)))
   round(predict(model, test, type = "response"))
   
@@ -505,3 +507,27 @@ test.chi.sq <- function(str1){
   return(goodness.fit(predictc, actualc))
   
 }
+
+add_space <- function(string){
+  return(paste(string, "\n", ''))
+}
+
+spaces_formula <- function(formula){
+  formula <- gsub(" ", "", formula, fixed = TRUE)
+  splits <- strsplit(formula, "+", fixed = TRUE)[[1]]
+  together <- c()
+  for (i in 1:((length(splits) -2) / 3)){
+    index <- i*3
+    splits[index] <- add_space(splits[index])
+  }
+  
+  returner <- paste(splits[1], "+", "")
+  
+  for (i in splits[2:(length(splits) -1)]){
+    
+    returner <- paste(returner, i, "+" )
+  }
+  returner <- paste(returner, splits[length(splits)], "")
+  return(returner)
+}
+
