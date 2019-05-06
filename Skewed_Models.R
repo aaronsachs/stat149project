@@ -7,6 +7,7 @@ import('stats')
 import('mgcv')
 import('gridExtra')
 import('pander')
+import('gsub')
 
 
 # load in data
@@ -20,7 +21,7 @@ ami <- load.data(path)
 #######################################################################################
 
 
-# find the best model full effects
+# find the best model independent variables
 model_str1 <- 'glm('
 model_str2 <- ',family = Gamma(log), data = ami)'
 predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na')
@@ -29,10 +30,9 @@ dependent.name <- "LOS"
 
 gamma.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'F')
 gamma.bm <- glm(gamma.bm.str , family = Gamma(log), data = ami)
-
 summary(gamma.bm)
 # diagnostic plots
-diagnostic_plots(gamma.bm, "Gamma Full Effect Final Model")
+diagnostic_plots(gamma.bm, "Gamma Indep. Var Final Model")
 
 
 
@@ -40,10 +40,9 @@ diagnostic_plots(gamma.bm, "Gamma Full Effect Final Model")
 model.str1 <- 'glm('
 model.str2 <- ',  Gamma(log), data = ami)'
 current.formula <- 'LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES +  LOGCHARGES.na + AGE'
-predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
-                      'DRG:SEX', 'SEX:LOGCHARGES.na', 
-                      'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
-                      'AGE:DIAGNOSIS')
+predictors.list <-   c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na', 'DRG:SEX', 'SEX:LOGCHARGES.na', 
+                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 'AGE:DIAGNOSIS', 'AGE:SEX',
+                       'AGE:DRG', 'AGE:LOGCHARGES.na')
 
 
 
@@ -51,8 +50,9 @@ predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
 gamma.bm.inter.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list, "F")
 gamma.bm.inter <- glm(gamma.bm.inter.str , family = Gamma(log), data = ami)
 
-gamma.bm.inter.str
-diagnostic_plots(gamma.bm.inter, "Gamma Full Effect + Interactions Final Model")
+
+summary(gamma.bm.inter)
+diagnostic_plots(gamma.bm.inter, "Gamma Indep. Var + Interactions Final Model")
 
 #######################################################################################
 ##############################    INVERSE GAUSSIAN ###################################
@@ -69,24 +69,25 @@ invg.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, da
 invg.bm <- glm(invg.bm.str, family=inverse.gaussian(log), data = ami)
 summary(invg.bm)
 
-diagnostic_plots(invg.bm, "Inv. Gaussian Full Effect + Interactions Final Model")
+diagnostic_plots(invg.bm, "Inv. Gaussian Indep. Var + Interactions Final Model")
 
 
-# find the best model after full effect fit including interactions
+# find the best model after indep variables fit including interactions
 model.str1 <- 'glm('
 model.str2 <- ',family=inverse.gaussian(log), data = ami)'
 current.formula <- "LOS ~  LOGCHARGES + DRG + AGE + DIAGNOSIS + LOGCHARGES.na + SEX"
-predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
-                      'DRG:SEX', 'SEX:LOGCHARGES.na', 
-                      'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
-                      'AGE:DIAGNOSIS')
+predictors.list <-   c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na', 'DRG:SEX', 'SEX:LOGCHARGES.na', 
+                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 'AGE:DIAGNOSIS', 'AGE:SEX',
+                       'AGE:DRG', 'AGE:LOGCHARGES.na')
 
 
 invg.bm.inter.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list, "F")
 invg.bm.inter <- glm(invg.bm.inter.str , family=inverse.gaussian(log), data = ami)
 
+gsub("(.{5})", "\\1 ", invg.bm.inter.str)
+
 summary(invg.bm.inter)
-diagnostic_plots(invg.bm.inter, "Inv. Gaussian Full Effect + Interactions Final Model")
+diagnostic_plots(invg.bm.inter, "Inv. Gaussian Indep. Var + Interactions Final Model")
 
 #######################################################################################
 ##############################    TWEEEDIE         ###################################
@@ -107,7 +108,7 @@ summary(twe.bm)
 par(mfrow=c(1,2))
 resid_plot(twe.bm, '')
 cooks_plot(twe.bm, '')
-mtext('Tweedie Full Effect', side = 3, line = -3, outer = TRUE)
+mtext('Tweedie Indep Var. ', side = 3, line = -3, outer = TRUE)
 
 dev.off()
 
@@ -116,15 +117,14 @@ dev.off()
 model.str1 <- 'gam('
 model.str2 <- ',family=tw(link="log"), data = ami)'
 current.formula <- "LOS ~  LOGCHARGES + DRG + AGE + DIAGNOSIS + LOGCHARGES.na + SEX"
-predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
-                      'DRG:SEX', 'SEX:LOGCHARGES.na', 
-                      'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
-                      'AGE:DIAGNOSIS')
+predictors.list <-   c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na', 'DRG:SEX', 'SEX:LOGCHARGES.na', 
+                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 'AGE:DIAGNOSIS', 'AGE:SEX',
+                       'AGE:DRG', 'AGE:LOGCHARGES.na')
 
 
 twe.bm.inter.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list, "F")
-twe.bm.inter.str <- 'LOS ~ LOGCHARGES + DRG + AGE + DIAGNOSIS + LOGCHARGES.na + SEX + 
-    LOGCHARGES:DIAGNOSIS + LOGCHARGES:SEX + AGE:DIAGNOSIS + DIAGNOSIS:DRG'
+twe.bm.inter.str <- "LOS ~  LOGCHARGES + DRG + AGE + DIAGNOSIS + LOGCHARGES.na + SEX + LOGCHARGES:DIAGNOSIS + 
+LOGCHARGES:SEX + AGE:DIAGNOSIS + AGE:DRG + AGE:SEX"
 twe.bm.inter <- gam(eval(parse(text = twe.bm.inter.str)), family=tw(link="log"), data = ami)
 summary(twe.bm.inter)
 
@@ -132,7 +132,7 @@ summary(twe.bm.inter)
 par(mfrow=c(1,2))
 resid_plot(twe.bm.inter, '')
 cooks_plot(twe.bm.inter, '')
-mtext('Tweedie Full Effect + Interactions Final Model', side = 3, line = -3, outer = TRUE)
+mtext('Tweedie Interactions Final Model', side = 3, line = -3, outer = TRUE)
 dev.off()
 
 
@@ -160,16 +160,15 @@ twe.tchi <- test.chi.sq('gam(formula = twe.bm.str, family=tw(link="log"),')
 twe.inter.tchi <- test.chi.sq('gam(formula = LOS ~ DIAGNOSIS + SEX + DRG + LOGCHARGES +  LOGCHARGES.na + AGE + LOGCHARGES:DRG  + SEX:LOGCHARGES.na + LOGCHARGES:DIAGNOSIS, family=tw(link="log"),')
 
 model <- c('Gamma', "Gamma + Inter", "InvG", 'InvG + Inter', 'Tweedle', 'Tweedle + Inter')
-twe.bm.str <- 'LOS ~ 1 + LOGCHARGES + DRG + \n DIAGNOSIS + LOGCHARGES.na'
-gamma.bm.inter.str <-  "LOS ~ DIAGNOSIS + SEX + DRG +\n LOGCHARGES +  LOGCHARGES.na + AGE + \nLOGCHARGES:DRG +  SEX:LOGCHARGES.na \n+ LOGCHARGES:DIAGNOSIS"
-invg.bm.str <- "LOS ~ 1 + LOGCHARGES + DRG + AGE + \nLOGCHARGES.na + DIAGNOSIS + SEX"
-invg.bm.inter.str <-  "LOS ~  LOGCHARGES + DRG + AGE + \nDIAGNOSIS + LOGCHARGES.na + SEX + \nLOGCHARGES:DRG + AGE:DIAGNOSIS + LOGCHARGES:DIAGNOSIS + \nDIAGNOSIS:DRG + SEX:LOGCHARGES.na"
-twe.bm.inter.str <- 'LOS ~ LOGCHARGES + DRG + AGE + \nDIAGNOSIS + LOGCHARGES.na + SEX + \nLOGCHARGES:DIAGNOSIS + LOGCHARGES:SEX + \nAGE:DIAGNOSIS + DIAGNOSIS:DRG'
-formula <- c(gamma.bm.str, gamma.bm.inter.str, 
-             invg.bm.str, invg.bm.inter.str,
-             twe.bm.str, twe.bm.inter.str)
+twe.bm.str <- 'LOS ~ 1 + LOGCHARGES + DRG + DIAGNOSIS + LOGCHARGES.na'
+# twe.bm.inter.str <- "LOS ~  LOGCHARGES + DRG + AGE + DIAGNOSIS + \n
+# LOGCHARGES.na + SEX + LOGCHARGES:DIAGNOSIS + \nLOGCHARGES:SEX + AGE:DIAGNOSIS + AGE:DRG + AGE:SEX"
+formula <- c(spaces_formula(gamma.bm.str), spaces_formula(gamma.bm.inter.str), 
+             spaces_formula(invg.bm.str), spaces_formula(invg.bm.inter.str),
+             spaces_formula(as.character(twe.bm.str)), spaces_formula(twe.bm.inter.str))
 chi.stat <- c(gamma.chi, gamma.inter.chi, invg.chi, invg.inter.chi, twe.chi, twe.inter.chi)
 test.chi.stat <- c(gamma.tchi, gamma.inter.tchi, invg.tchi, invg.inter.tchi, twe.tchi, twe.inter.tchi)
+
 skew.table.comparison <- data.frame(model, formula,chi.stat, test.chi.stat)
 skew.table.comparison 
 rownames(skew.table.comparison) <- NULL
@@ -179,6 +178,7 @@ dev.off()
 pander(skew.table.comparison)
 grid.table(skew.table.comparison, row = c('','',' ','','',''))
 # final model is Gamma
+
 
 
 
