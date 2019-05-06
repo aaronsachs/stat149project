@@ -1,10 +1,16 @@
+source('~/Documents/STAT149/proyecto/lucas/Functions.R')
+
 if (!require(aod)) {install.packages("aod"); require(aod)}
+
 library(MASS)
 library(stats)
 library(car)
 library(pscl)
+library(pander)
+import('gridExtra')
+import('GLMMadaptive')
 
-source('~/Documents/STAT149/proyecto/lucas/Functions.R')
+
 
 # load in data
 path <- '~/Documents/STAT149/proyecto/lucas/'
@@ -24,50 +30,107 @@ ami <- ami[ami$CHARGES > 300,]
 #### with dropped data ########
 model_str1 <- 'glm('
 model_str2 <- ',family = \'poisson\', data = ami)'
-predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'log(CHARGES + 2000)' , 'AGE', 'LOGCHARGES.na')
-                #, 'DRG:AGE', 'DRG:LOGCHARGES', 'DIAGNOSIS:LOGCHARGES', 'DIAGNOSIS:SEX', 'DIAGNOSIS:DRG')
+predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na')
 dependent.name <- "LOS"
 
 # find the best model
 poisson.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'Chisq')
-poisson.bm <- glm(LOS ~ 1 + log(CHARGES + 2000) + DRG + AGE + DIAGNOSIS + SEX + 
-                  LOGCHARGES.na, family = 'poisson', data = ami)
+poisson.bm <- glm(poisson.bm.str, family = 'poisson', data = ami)
 
-cooks <- cooks.distance(poisson.bm)
-summary(ami
-        )
 
-vif(poisson.bm)
+summary(poisson.bm)
+# diagnostic plots
+diagnostic_plots(poisson.bm, "Poisson Full Effect Final Model")
+
+current.formula <- poisson.bm.str
+predictors.list <-  c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
+                      'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na', 
+                      'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
+                      'AGE:DIAGNOSIS')
+
+poisson.bm.inter.str <- consider_predictors(model_str1, model_str2, current.formula, predictors.list, "Chisq")
+poisson.bm.inter <- glm(poisson.bm.inter.str , family = 'poisson', data = ami)
+
+summary(poisson.bm.inter)
+diagnostic_plots(poisson.bm.inter, "Poisson Full Effect + Interactions Final Model")
+
+
+poisson.chi <- goodness.fit.model(poisson.bm)
+poisson.inter.chi <- goodness.fit.model(poisson.bm.inter)
+
+poisson.tchi <- test.chi.sq('glm(formula = poisson.bm.str, family = \'poisson\',')
+poisson.inter.tchi <- test.chi.sq('glm(formula = poisson.bm.inter.str, family = \'poisson\',')
+
+model <- c('Poisson','Poisson + Inter')
+chi.stat <- c(poisson.chi,poisson.inter.chi)
+test.chi.stat <- c(poisson.tchi,poisson.inter.tchi)
+dev.off()
+pander(data.frame(model, chi.stat, test.chi.stat))
+
+grid.table(data.frame(model, chi.stat, test.chi.stat), row = c('',''))
 
 #######################################################################################
 ##############################          POISSON       #################################
 ##############################           HURDLE        ################################
 #######################################################################################
 
-model_str1 <- 'hurdle('
-model_str2 <- ',dist = \'poisson\', data = ami)'
-predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'log(CHARGES + 2000)' , 'AGE', 'LOGCHARGES.na', 'DRG:AGE', 'DRG:LOGCHARGES', 'DIAGNOSIS:LOGCHARGES', 'DIAGNOSIS:SEX', 'DIAGNOSIS:DRG')
-dependent.name <- "LOS-1"
+mod1 <- hurdle((LOS-1) ~ LOGCHARGES+DRG+AGE+LOGCHARGES.na+DIAGNOSIS
+               |LOGCHARGES+LOGCHARGES.na, dist='poisson',data=ami)
 
-# find the best model
-poisson.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'Chisq')
-poisson.bm <- glm(LOS-1 ~ 1 + log(CHARGES + 2000) + DRG + AGE + DIAGNOSIS + SEX + 
-                    LOGCHARGES.na, family = 'poisson', data = ami)
+mod2 <- hurdle((LOS-1) ~ LOGCHARGES+DRG+AGE+LOGCHARGES.na+DIAGNOSIS+SEX
+               |LOGCHARGES+LOGCHARGES.na, dist='poisson',data=ami)
 
-mod1 = hurdle(LOS-1~DIAGNOSIS,dist='poisson',data=ami)
-mod2 = hurdle(LOS-1~DIAGNOSIS+AGE,dist='poisson',data=ami)
-logLik(mod1)
-logLik(mod2)
 
-a5 <- apply(cbind(paste("(",names(ami[6]),"-1)~"),data.frame(t(combn(predictors, 10)))), 1, paste, collapse="+")
-models5 <- lapply(a5,FUN = function(X) hurdle(X, dist="poisson",data=ami))
 
-results <- data.frame(model = c(), deviance = c(), coefficients = c(), least_deviance = c())
-buffer <- data.frame(model = c(), deviance = c(), coefficients = c(), least_deviance = c())
-for(i in 1:length(models5)){
-  newdf <- data.frame(model = models5[[i]][['formula']],deviance = models5[[i]][['deviance']], coefficients = length(models5[[i]][["coefficients"]]), least_deviance = 0)
-  buffer <- rbind(buffer,newdf)
+lrt <- 2*(mod2$loglik-mod1$loglik)
+degrees <- mod2$df.residual-mod1$df.residual
+
+1-pchisq(lrt,degrees)
+
+response_str <- 'LOS'
+predictor_str <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na')
+hurdle_best <- function(response_str,predictor_str){
+  
+  # rescale data
+  ami2 <- ami
+  ami2$LOS <- ami$LOS-1
+  
+  # fit full model
+  predictors.str <- paste(predictor_str,collapse=" + ")
+  full.str <- paste('hurdle(',response_str,'~',predictors.str,',dist=\'poisson\',data = ami2)',sep="")
+  hurdle.best <- eval(parse(text=full.str))
+  
+  p <- 0.05
+  
+  # fit all possible H_0
+  nulls <- apply(cbind(paste(names(ami2)[6],"~"),data.frame(t(combn(predictor_str, (length(predictor_str)-1))))), 1, paste, collapse="+")
+  model.nulls.str <- rep(NA,length(nulls))
+  for (i in 1:length(nulls)){
+    model.nulls.str[i] <- paste('hurdle(',nulls[i],',dist=\'poisson\',data = ami2)',sep="")
+    model.null <- eval(parse(text=model.nulls.str[i]))
+    lrt <- 2*(hurdle.best$loglik-model.null$loglik)
+    degrees <- model.null$df.residual-hurdle.best$df.residual
+    val[i] <- 1-pchisq(lrt,degrees)
+    if (val[i] > p){
+      hurdle.best <- model.null
+      }
+  }
+  return(hurdle.best)
 }
-buffer$least_deviance[which.min(buffer$deviance)] <- 1
-results <- rbind(results,buffer)
-buffer <- data.frame(model = c(), deviance = c(), coefficients = c(), least_deviance = c())
+
+best.hurdle.model <- hurdle_best(response_str,predictor_str)
+ami$LOS <- ami$LOS-1
+diagnostic_plots(best.hurdle.model, "Poisson Hurdle Final Model")
+poisson.chi <- goodness.fit.model(best.hurdle.model)
+poisson.tchi <- test.chi.sq('hurdle(formula = best.hurdle.model, family = \'poisson\',')
+
+
+
+response_str <- 'LOS'
+predictor_str_inter <- c(predictor_str,'DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na',
+                         'DRG:SEX', 'DRG:LOGCHARGES.na', 'SEX:LOGCHARGES.na', 
+                         'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 
+                         'AGE:DIAGNOSIS')
+
+best.hurdle.model.inter <- hurdle_best(response_str,predictor_str_inter)
+
