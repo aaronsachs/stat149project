@@ -28,12 +28,28 @@ predictors <- c('DIAGNOSIS' , 'SEX', 'DRG', 'LOGCHARGES' , 'AGE', 'LOGCHARGES.na
 dependent.name <- "LOS"
 
 
+
 gamma.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, data = ami, test = 'F')
 gamma.bm <- glm(gamma.bm.str , family = Gamma(log), data = ami)
 summary(gamma.bm)
+
+
+
+
 # diagnostic plots
 diagnostic_plots(gamma.bm, "Gamma Indep. Var Final Model")
 
+diagnostic_plots(gamma.bm, "Gamma Indep. Var Final Model")
+
+ami$logcharges8 <- ami$LOGCHARGES ^ 8
+ami$AGE8 <- ami$AGE^ 8
+
+gamma.bm.more <- glm(LOS ~ 1 + logcharges8 + DRG+ ami$AGE8 + LOGCHARGES.na + DIAGNOSIS + SEX , family = Gamma(log), data = ami)
+summary(gamma.bm.more)
+
+
+goodness.fit.model(gamma.bm.more)
+test.chi.sq('glm(LOS ~ 1 + LOGCHARGES^8 + DRG^8 + AGE + LOGCHARGES.na + DIAGNOSIS + SEX , family = Gamma(log),')
 
 
 # find the best model after full effect fit including interactions
@@ -105,26 +121,24 @@ twe.bm.str <- best_model(model_str1, model_str2, dependent.name, predictors, dat
 twe.bm <- gam(twe.bm.str, family=tw(link="log"), data = ami)
 summary(twe.bm)
 
+twe.bm.str
+
 par(mfrow=c(1,2))
 resid_plot(twe.bm, '')
 cooks_plot(twe.bm, '')
 mtext('Tweedie Indep Var. ', side = 3, line = -3, outer = TRUE)
 
-dev.off()
-
 
 # find the best model after full effect fit including interactions
 model.str1 <- 'gam('
 model.str2 <- ',family=tw(link="log"), data = ami)'
-current.formula <- "LOS ~  LOGCHARGES + DRG + AGE + DIAGNOSIS + LOGCHARGES.na + SEX"
-predictors.list <-   c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na', 'DRG:SEX', 'SEX:LOGCHARGES.na', 
-                       'LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:SEX', 'LOGCHARGES:DRG', 'AGE:DIAGNOSIS', 'AGE:SEX',
-                       'AGE:DRG', 'AGE:LOGCHARGES.na')
+current.formula <- "LOS ~ 1 + LOGCHARGES + DRG + DIAGNOSIS + LOGCHARGES.na"
+predictors.list <-   c('DIAGNOSIS:DRG','DIAGNOSIS:LOGCHARGES.na','LOGCHARGES:DIAGNOSIS', 'LOGCHARGES:DRG')
 
 
 twe.bm.inter.str <- consider_predictors(model.str1, model.str2, current.formula, predictors.list, "F")
-twe.bm.inter.str <- "LOS ~  LOGCHARGES + DRG + AGE + DIAGNOSIS + LOGCHARGES.na + SEX + LOGCHARGES:DIAGNOSIS + 
-LOGCHARGES:SEX + AGE:DIAGNOSIS + AGE:DRG + AGE:SEX"
+twe.bm.inter.str <- 'LOS ~ 1 + LOGCHARGES + DRG + DIAGNOSIS + LOGCHARGES.na + LOGCHARGES:DIAGNOSIS + 
+    DIAGNOSIS:DRG'
 twe.bm.inter <- gam(eval(parse(text = twe.bm.inter.str)), family=tw(link="log"), data = ami)
 summary(twe.bm.inter)
 

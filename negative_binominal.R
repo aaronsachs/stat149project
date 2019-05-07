@@ -49,7 +49,7 @@ nbin.inter.chi <- goodness.fit.model(nbin.bm.inter)
 # find statistic for both models
 nbin.tchi <- test.chi.sq('glm.nb(formula = nbin.bm,')
 nbin.inter.tchi <- test.chi.sq('glm.nb(formula = nbin.bm.inter,')
-=
+
 # put together lists 
 model <- c("NBin", "NBin + Inter")
 formula <- c(spaces_formula(nbin.bm.str), spaces_formula(nbin.bm.inter.str))
