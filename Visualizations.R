@@ -1,26 +1,23 @@
-if (!require(aod)) {install.packages("aod"); require(aod)}
-if (!require(sjPlot)) {install.packages("sjPlot"); require(sjPlot)}
-if (!require(sjmisc)) {install.packages("sjmisc"); require(sjmisc)}
-if (!require(ggplot2)) {install.packages("ggplot2"); require(ggplot2)}
-if (!require(gridExtra)) {install.packages("gridExtra"); require(gridExtra)}
 
 source('/Users/jeanettejin/stat149project/Functions.R')
+
+import('aod')
+import('sjPlot')
+import('sjmisc')
+import('ggplot2')
+import('gridExtra')
+import('gridExtra')
+import('effects')
+import('dplyr')
 
 
 # load in data
 path <- '/Users/jeanettejin/stat149project/'
 ami <- load.data(path)
 
-
-
-ami.drop <- ami[complete.cases(ami), ]
-ami.convert <- na.convert.mean(ami)
-summary(ami)
-ami.convert$CHARGES.na <- as.factor(ami.convert$CHARGES.na)
-
-
-hist(amin[complete.cases(amin), ]$LOS)
-hist(ami[!complete.cases(ami), ]$LOS)
+ami$CHARGES <- NULL
+ami$Patient <- NULL
+ami$CHARGES.na <- NULL
 
 
 #######################################################################################
@@ -60,10 +57,7 @@ ggplot(ami, aes(x = SEX)) + geom_bar() + theme_gray() +
 ggplot(ami, aes(x = DRG)) + geom_bar() + theme_gray() + 
   labs(title = "Diagnosis Related Group (DRG)", x = "Diagnosis Related Group (DRG)", y = " ") 
 
-# died
-# most don't die
-ggplot(ami, aes(x = DIED)) + geom_bar() + theme_gray() + 
-  labs(title = "Died", x = "Died", y = " ") 
+
 
 # FEATURE VS PREDICTOR VIS ##
 #############################
@@ -72,16 +66,17 @@ ggplot(ami, aes(x = DIED)) + geom_bar() + theme_gray() +
 # very right skewed
 los <- ggplot(ami, aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
   labs(title = "LOS", x = "LOS", y = " ") 
+los
 
-# charges (note missing values are dropped)
-charges.los <- ggplot(ami, aes(x = log(CHARGES), y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
-  labs(title = "LOS by Charges", x = "Charges ($)", y = "LOS")
+# charges 
+charges.los <- ggplot(ami, aes(x = LOGCHARGES, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
+  labs(title = "LOS by LogCharges", x = "LogCharges", y = "LOS")
 charges.los
 
 # age
 age.los <- ggplot(ami, aes(x = AGE, y = LOS)) + geom_point(alpha = 0.2) + theme_gray() + 
   labs(title = "LOS by Age", x = "Age", y = "LOS")
-age
+age.los
 
 # diagnoses
 diag.los <- ggplot(ami, aes(x = DIAGNOSIS, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
@@ -91,54 +86,56 @@ diag.los
 # sex
 sex.los <- ggplot(ami, aes(x = SEX, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
   labs(title = "LOS by Sex", x = "Sex", y = "LOS")
-
 sex.los
 
 # drg
 drg.los <- ggplot(ami, aes(x = DRG, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
   labs(title = "LOS by Drg", x = "DRG", y = "LOS")
-
 drg.los
-
-
-
-
-# died
-ggplot(ami, aes(x = DIED, y = LOS)) + geom_boxplot(alpha = 0.2) + theme_gray() + 
-  labs(title = "Length of Stay by Death", x = "Death", y = "Hospital Length of Stay")
 
 
 ######### INTERACTIONS VIS ##
 #############################
 
 # interactions with charges
-inter.c.diag <- lm(LOS ~ CHARGES * DIAGNOSIS, data = ami)
-plot_model(inter.c.diag, type = "int", terms = c('CHARGES', 'DIAGNOSIS'))
+inter.c.diag <- lm(LOS ~ LOGCHARGES * DIAGNOSIS, data = ami)
+inter.c.diag.plot <- plot_model(inter.c.diag, type = "int", terms = c('LOGCHARGES', 'DIAGNOSIS'),  title = c('LOGCHARGES DIAGNOSIS'))
 
-inter.c.sex <- lm(LOS ~ CHARGES * SEX, data = ami)
-plot_model(inter.c.sex, type = "int", terms = c('CHARGES', 'SEX'))
+inter.c.sex <- lm(LOS ~ LOGCHARGES * SEX, data = ami)
+inter.c.sex.plot <- plot_model(inter.c.sex, type = "int", terms = c('LOGCHARGES', 'SEX'),  title = c('LOGCHARGES SEX'))
 
-inter.c.drg <- lm(LOS ~ CHARGES * DRG, data = ami)
-plot_model(inter.c.drg, type = "int", terms = c('CHARGES', 'DRG'))
+inter.c.drg <- lm(LOS ~ LOGCHARGES * DRG, data = ami)
+inter.c.drg.plot <- plot_model(inter.c.drg, type = "int", terms = c('LOGCHARGES', 'DRG'),  title = c('LOGCHARGES DRG'))
 
-inter.c.died <- lm(LOS ~ CHARGES * DIED, data = ami)
-plot_model(inter.c.died, type = "int", terms = c('CHARGES', 'DIED'))
+inter.c.na <- lm(LOS ~ LOGCHARGES *LOGCHARGES.na, data = ami)
+inter.c.na.plot <- plot_model(inter.c.na, type = "int", terms = c('LOGCHARGES', 'LOGCHARGES.na'), title = c('LOGCHARGES LOGCHARGES.na'))
 
 # interactions with ages
-# NOTE
 inter.a.diag <- lm(LOS ~ AGE * DIAGNOSIS, data = ami)
-plot_model(inter.a.diag, type = "int", terms = c('AGE', 'DIAGNOSIS'))
+inter.a.diag.plot <- plot_model(inter.a.diag, type = "int", terms = c('AGE', 'DIAGNOSIS'), title = c('AGE DIAGNOSIS'))
 
 inter.a.sex <- lm(LOS ~ AGE * SEX, data = ami)
-plot_model(inter.a.sex, type = "int", terms = c('AGE', 'SEX'))
+inter.a.sex.plot <- plot_model(inter.a.sex, type = "int", terms = c('AGE', 'SEX'), title = c('AGE SEX'))
 
 inter.a.drg <- lm(LOS ~ AGE * DRG, data = ami)
-plot_model(inter.a.drg, type = "int", terms = c('AGE', 'DRG'))
+inter.a.drg.plot <- plot_model(inter.a.drg, type = "int", terms = c('AGE', 'DRG'), title = c('AGE DRG'))
 
-# NOTE
-inter.a.died <- lm(LOS ~ AGE * DIED, data = ami)
-plot_model(inter.a.died, type = "int", terms = c('AGE', 'DIED'))
+inter.a.na <- lm(LOS ~ AGE *LOGCHARGES.na, data = ami)
+inter.a.na.plot <- plot_model(inter.a.na, type = "int", terms = c('AGE', "LOGCHARGES.na"), title = c('AGE LOGCHARGES.na'))
 
+grid.arrange(inter.c.diag.plot, inter.c.sex.plot, inter.c.drg.plot, inter.c.na.plot, 
+             inter.a.diag.plot, inter.a.sex.plot, inter.a.drg.plot, inter.a.na.plot , ncol=4)
+
+
+# interactions with categorical
+inter.diag.drg <- interact.plot('DIAGNOSIS', 'DRG')
+inter.diag.sex <- interact.plot('DIAGNOSIS', 'SEX')
+inter.diag.na <- interact.plot('DIAGNOSIS', 'LOGCHARGES.na')
+inter.drg.sex <- interact.plot('DRG', 'SEX')
+inter.drg.na <- interact.plot('DRG', 'LOGCHARGES.na')
+inter.sex.na <- interact.plot('SEX', 'LOGCHARGES.na')
+
+grid.arrange(inter.diag.drg, inter.diag.sex, inter.diag.na, inter.drg.sex, inter.drg.na, inter.sex.na, ncol=3)
 
 
 ###########
@@ -152,14 +149,14 @@ amin <-read.csv('/Users/jeanettejin/stat149project/amidata.csv')
 
 missing.data <- amin[!complete.cases(amin),]
 notmissing.data <- amin[complete.cases(amin), ]
-            
 
-      
+
+
 
 table(missing.data$) /699
 table(notmissing.data$DRG) / 12145
-                     
-                     
+
+
 not.missing <- ggplot(amin[complete.cases(amin), ], aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
   labs(title = "LOS Not Including Missing Value Rows", x = "LOS", y = " ") 
 missing <- ggplot(amin[!complete.cases(amin), ], aes(x = LOS)) + geom_histogram(alpha = 0.8) + theme_gray() + 
